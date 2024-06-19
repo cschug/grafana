@@ -1,8 +1,7 @@
-import { MutableRefObject, RefObject } from 'react';
+import { RefObject } from 'react';
 import uPlot, { Cursor } from 'uplot';
 
 import {
-  DashboardCursorSync,
   DataFrameType,
   formattedValueToString,
   getValueFormat,
@@ -19,7 +18,7 @@ import { isHeatmapCellsDense, readHeatmapRowsCustomMeta } from 'app/features/tra
 import { pointWithin, Quadtree, Rect } from '../barchart/quadtree';
 
 import { HeatmapData } from './fields';
-import { FieldConfig, YAxisConfig } from './types';
+import { FieldConfig, HeatmapSelectionMode, YAxisConfig } from './types';
 
 interface PathbuilderOpts {
   each: (u: uPlot, seriesIdx: number, dataIdx: number, lft: number, top: number, wid: number, hgt: number) => void;
@@ -41,25 +40,9 @@ interface PointsBuilderOpts {
   each: (u: uPlot, seriesIdx: number, dataIdx: number, lft: number, top: number, wid: number, hgt: number) => void;
 }
 
-export interface HeatmapHoverEvent {
-  seriesIdx: number;
-  dataIdx: number;
-  pageX: number;
-  pageY: number;
-}
-
-export interface HeatmapZoomEvent {
-  xMin: number;
-  xMax: number;
-}
-
 interface PrepConfigOpts {
   dataRef: RefObject<HeatmapData>;
   theme: GrafanaTheme2;
-  onhover?: null | ((evt?: HeatmapHoverEvent | null) => void);
-  onclick?: null | ((evt?: Object) => void);
-  onzoom?: null | ((evt: HeatmapZoomEvent) => void);
-  isToolTipOpen?: MutableRefObject<boolean>;
   timeZone: string;
   getTimeRange: () => TimeRange;
   exemplarColor: string;
@@ -68,18 +51,13 @@ interface PrepConfigOpts {
   hideGE?: number;
   yAxisConfig: YAxisConfig;
   ySizeDivisor?: number;
-  sync?: () => DashboardCursorSync;
-  // Identifies the shared key for uPlot cursor sync
-  eventsScope?: string;
+  selectionMode?: HeatmapSelectionMode;
 }
 
 export function prepConfig(opts: PrepConfigOpts) {
   const {
     dataRef,
     theme,
-    onhover,
-    onclick,
-    isToolTipOpen,
     timeZone,
     getTimeRange,
     cellGap,
@@ -87,8 +65,7 @@ export function prepConfig(opts: PrepConfigOpts) {
     hideGE,
     yAxisConfig,
     ySizeDivisor,
-    sync,
-    eventsScope = '__global_',
+    selectionMode = HeatmapSelectionMode.X,
   } = opts;
 
   const xScaleKey = 'x';
@@ -108,8 +85,6 @@ export function prepConfig(opts: PrepConfigOpts) {
 
   let builder = new UPlotConfigBuilder(timeZone);
 
-  let rect: DOMRect;
-
   builder.addHook('init', (u) => {
     u.root.querySelectorAll<HTMLElement>('.u-cursor-pt').forEach((el) => {
       Object.assign(el.style, {
@@ -118,20 +93,6 @@ export function prepConfig(opts: PrepConfigOpts) {
         background: 'transparent',
       });
     });
-
-    onclick &&
-      u.over.addEventListener(
-        'mouseup',
-        (e) => {
-          // @ts-ignore
-          let isDragging: boolean = u.cursor.drag._x || u.cursor.drag._y;
-
-          if (!isDragging) {
-            onclick(e);
-          }
-        },
-        true
-      );
   });
 
   if (isTime) {
@@ -152,48 +113,6 @@ export function prepConfig(opts: PrepConfigOpts) {
       }
     });
   }
-
-  // rect of .u-over (grid area)
-  builder.addHook('syncRect', (u, r) => {
-    rect = r;
-  });
-
-  let pendingOnleave: ReturnType<typeof setTimeout> | 0;
-
-  onhover &&
-    builder.addHook('setLegend', (u) => {
-      if (u.cursor.idxs != null) {
-        for (let i = 0; i < u.cursor.idxs.length; i++) {
-          const sel = u.cursor.idxs[i];
-          if (sel != null) {
-            const { left, top } = u.cursor;
-
-            if (!isToolTipOpen?.current) {
-              if (pendingOnleave) {
-                clearTimeout(pendingOnleave);
-                pendingOnleave = 0;
-              }
-              onhover({
-                seriesIdx: i,
-                dataIdx: sel,
-                pageX: rect.left + left!,
-                pageY: rect.top + top!,
-              });
-            }
-            return;
-          }
-        }
-      }
-
-      if (!isToolTipOpen?.current) {
-        // if tiles have gaps, reduce flashing / re-render (debounce onleave by 100ms)
-        if (!pendingOnleave) {
-          pendingOnleave = setTimeout(() => {
-            onhover(null);
-          }, 100);
-        }
-      }
-    });
 
   builder.addHook('drawClear', (u) => {
     qt = qt || new Quadtree(0, 0, u.bbox.width, u.bbox.height);
@@ -542,10 +461,13 @@ export function prepConfig(opts: PrepConfigOpts) {
     scaleKey: '', // facets' scales used (above)
   });
 
+  const dragX = selectionMode === HeatmapSelectionMode.X || selectionMode === HeatmapSelectionMode.Xy;
+  const dragY = selectionMode === HeatmapSelectionMode.Y || selectionMode === HeatmapSelectionMode.Xy;
+
   const cursor: Cursor = {
     drag: {
-      x: true,
-      y: false,
+      x: dragX,
+      y: dragY,
       setScale: false,
     },
     dataIdx: (u, seriesIdx) => {
@@ -582,15 +504,6 @@ export function prepConfig(opts: PrepConfigOpts) {
       },
     },
   };
-
-  if (sync && sync() !== DashboardCursorSync.Off) {
-    cursor.sync = {
-      key: eventsScope,
-      scales: [xScaleKey, null],
-    };
-
-    builder.setSync();
-  }
 
   builder.setCursor(cursor);
 

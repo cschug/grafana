@@ -1,8 +1,17 @@
 import { map, of } from 'rxjs';
 
 import { DataQueryRequest, DataSourceApi, DataSourceInstanceSettings, LoadingState, PanelData } from '@grafana/data';
-import { locationService } from '@grafana/runtime';
-import { SceneQueryRunner, VizPanel } from '@grafana/scenes';
+import { calculateFieldTransformer } from '@grafana/data/src/transformations/transformers/calculateField';
+import { mockTransformationsRegistry } from '@grafana/data/src/utils/tests/mockTransformationsRegistry';
+import { config, locationService } from '@grafana/runtime';
+import {
+  LocalValueVariable,
+  SceneGridRow,
+  SceneQueryRunner,
+  SceneVariableSet,
+  VizPanel,
+  sceneGraph,
+} from '@grafana/scenes';
 import { DataQuery, DataSourceJsonData, DataSourceRef } from '@grafana/schema';
 import { getDashboardSrv } from 'app/features/dashboard/services/DashboardSrv';
 import { InspectTab } from 'app/features/inspector/types';
@@ -75,6 +84,18 @@ const ds3Mock: DataSourceApi = {
   },
 } as DataSourceApi<DataQuery, DataSourceJsonData, {}>;
 
+const defaultDsMock: DataSourceApi = {
+  meta: {
+    id: 'grafana-testdata-datasource',
+  },
+  name: 'grafana-testdata-datasource',
+  type: 'grafana-testdata-datasource',
+  uid: 'gdev-testdata',
+  getRef: () => {
+    return { type: 'grafana-testdata-datasource', uid: 'gdev-testdata' };
+  },
+} as DataSourceApi<DataQuery, DataSourceJsonData, {}>;
+
 const instance1SettingsMock = {
   id: 1,
   uid: 'gdev-testdata',
@@ -124,6 +145,7 @@ jest.mock('@grafana/runtime', () => ({
   getDataSourceSrv: () => ({
     get: async (ref: DataSourceRef) => {
       // Mocking the build in Grafana data source to avoid annotations data layer errors.
+
       if (ref.uid === '-- Grafana --') {
         return grafanaDs;
       }
@@ -140,7 +162,8 @@ jest.mock('@grafana/runtime', () => ({
         return ds3Mock;
       }
 
-      return null;
+      // if datasource is not found, return default datasource
+      return defaultDsMock;
     },
     getInstanceSettings: (ref: DataSourceRef) => {
       if (ref.uid === 'gdev-testdata') {
@@ -151,13 +174,22 @@ jest.mock('@grafana/runtime', () => ({
         return instance2SettingsMock;
       }
 
-      return null;
+      // if datasource is not found, return default instance settings
+      return instance1SettingsMock;
     },
   }),
   locationService: {
     partial: jest.fn(),
   },
+  config: {
+    ...jest.requireActual('@grafana/runtime').config,
+    defaultDatasource: 'gdev-testdata',
+  },
 }));
+
+mockTransformationsRegistry([calculateFieldTransformer]);
+
+jest.useFakeTimers();
 
 describe('VizPanelManager', () => {
   describe('When changing plugin', () => {
@@ -165,6 +197,7 @@ describe('VizPanelManager', () => {
       const { vizPanelManager } = setupTest('panel-1');
       expect(vizPanelManager.state.panel.state.pluginId).toBe('timeseries');
       vizPanelManager.changePluginType('table');
+
       expect(vizPanelManager.state.panel.state.pluginId).toBe('table');
     });
 
@@ -179,7 +212,14 @@ describe('VizPanelManager', () => {
         title: 'Panel A',
         key: 'panel-1',
         pluginId: 'table',
-        $data: new SceneQueryRunner({ key: 'data-query-runner', queries: [{ refId: 'A' }] }),
+        $data: new SceneQueryRunner({
+          key: 'data-query-runner',
+          datasource: {
+            type: 'grafana-testdata-datasource',
+            uid: 'gdev-testdata',
+          },
+          queries: [{ refId: 'A' }],
+        }),
         options: undefined,
         fieldConfig: {
           defaults: {
@@ -210,7 +250,14 @@ describe('VizPanelManager', () => {
         title: 'Panel A',
         key: 'panel-1',
         pluginId: 'table',
-        $data: new SceneQueryRunner({ key: 'data-query-runner', queries: [{ refId: 'A' }] }),
+        $data: new SceneQueryRunner({
+          key: 'data-query-runner',
+          datasource: {
+            type: 'grafana-testdata-datasource',
+            uid: 'gdev-testdata',
+          },
+          queries: [{ refId: 'A' }],
+        }),
         options: {
           customOption: 'A',
         },
@@ -336,6 +383,21 @@ describe('VizPanelManager', () => {
           datasourceUid: 'gdev-testdata',
         });
       });
+
+      it('should load default datasource if the datasource passed is not found', async () => {
+        const { vizPanelManager } = setupTest('panel-6');
+        vizPanelManager.activate();
+        await Promise.resolve();
+
+        expect(vizPanelManager.queryRunner.state.datasource).toEqual({
+          uid: 'abc',
+          type: 'datasource',
+        });
+
+        expect(config.defaultDatasource).toBe('gdev-testdata');
+        expect(vizPanelManager.state.datasource).toEqual(defaultDsMock);
+        expect(vizPanelManager.state.dsSettings).toEqual(instance1SettingsMock);
+      });
     });
 
     describe('data source change', () => {
@@ -357,6 +419,8 @@ describe('VizPanelManager', () => {
           datasourceUid: 'gdev-prometheus',
         });
 
+        jest.runAllTimers(); // The detect panel changes is debounced
+        expect(vizPanelManager.state.isDirty).toBe(true);
         expect(vizPanelManager.state.datasource).toEqual(ds2Mock);
         expect(vizPanelManager.state.dsSettings).toEqual(instance2SettingsMock);
       });
@@ -424,6 +488,8 @@ describe('VizPanelManager', () => {
             },
           });
 
+          jest.runAllTimers(); // The detect panel changes is debounced
+          expect(vizPanelManager.state.isDirty).toBe(true);
           expect((panel.state.$timeRange?.state as PanelTimeRangeState).timeFrom).toBe('2h');
         });
 
@@ -467,7 +533,7 @@ describe('VizPanelManager', () => {
       });
 
       describe('max data points and interval', () => {
-        it('max data points', async () => {
+        it('should update max data points', async () => {
           const { vizPanelManager } = setupTest('panel-1');
           vizPanelManager.activate();
           await Promise.resolve();
@@ -486,10 +552,12 @@ describe('VizPanelManager', () => {
             maxDataPoints: 100,
           });
 
+          jest.runAllTimers(); // The detect panel changes is debounced
+          expect(vizPanelManager.state.isDirty).toBe(true);
           expect(dataObj.state.maxDataPoints).toBe(100);
         });
 
-        it('max data points', async () => {
+        it('should update min interval', async () => {
           const { vizPanelManager } = setupTest('panel-1');
           vizPanelManager.activate();
           await Promise.resolve();
@@ -508,6 +576,8 @@ describe('VizPanelManager', () => {
             minInterval: '1s',
           });
 
+          jest.runAllTimers(); // The detect panel changes is debounced
+          expect(vizPanelManager.state.isDirty).toBe(true);
           expect(dataObj.state.minInterval).toBe('1s');
         });
       });
@@ -531,6 +601,8 @@ describe('VizPanelManager', () => {
             queries: [],
           });
 
+          jest.runAllTimers(); // The detect panel changes is debounced
+          expect(vizPanelManager.state.isDirty).toBe(true);
           expect(dataObj.state.cacheTimeout).toBe('60');
           expect(dataObj.state.queryCachingTTL).toBe(200000);
         });
@@ -568,6 +640,8 @@ describe('VizPanelManager', () => {
           },
         } as DataSourceInstanceSettings);
 
+        jest.runAllTimers(); // The detect panel changes is debounced
+        expect(vizPanelManager.state.isDirty).toBe(true);
         expect(vizPanelManager.queryRunner.state.datasource).toEqual({
           uid: 'gdev-prometheus',
           type: 'grafana-prometheus-datasource',
@@ -595,6 +669,8 @@ describe('VizPanelManager', () => {
           },
         } as DataSourceInstanceSettings);
 
+        jest.runAllTimers(); // The detect panel changes is debounced
+        expect(vizPanelManager.state.isDirty).toBe(true);
         expect(vizPanelManager.queryRunner.state.datasource).toEqual({
           uid: SHARED_DASHBOARD_QUERY,
           type: 'datasource',
@@ -622,6 +698,8 @@ describe('VizPanelManager', () => {
           },
         } as DataSourceInstanceSettings);
 
+        jest.runAllTimers(); // The detect panel changes is debounced
+        expect(vizPanelManager.state.isDirty).toBe(true);
         expect(vizPanelManager.queryRunner.state.datasource).toEqual({
           uid: 'gdev-prometheus',
           type: 'grafana-prometheus-datasource',
@@ -643,6 +721,8 @@ describe('VizPanelManager', () => {
       vizPanelManager.dataTransformer.reprocessTransformations = reprocessMock;
       vizPanelManager.changeTransformations([{ id: 'calculateField', options: {} }]);
 
+      jest.runAllTimers(); // The detect panel changes is debounced
+      expect(vizPanelManager.state.isDirty).toBe(true);
       expect(reprocessMock).toHaveBeenCalledTimes(1);
       expect(vizPanelManager.dataTransformer.state.transformations).toEqual([{ id: 'calculateField', options: {} }]);
     });
@@ -668,6 +748,8 @@ describe('VizPanelManager', () => {
           },
         ]);
 
+        jest.runAllTimers(); // The detect panel changes is debounced
+        expect(vizPanelManager.state.isDirty).toBe(true);
         expect(vizPanelManager.queryRunner.state.queries).toEqual([
           {
             datasource: {
@@ -715,8 +797,46 @@ describe('VizPanelManager', () => {
           },
         ]);
 
+        jest.runAllTimers(); // The detect panel changes is debounced
+        expect(vizPanelManager.state.isDirty).toBe(true);
         expect(vizPanelManager.queryRunner.state.queries[0].panelId).toBe(panelWithQueriesOnly.id);
       });
+    });
+  });
+
+  it('should load last used data source if no data source specified for a panel', async () => {
+    store.exists.mockReturnValue(true);
+    store.getObject.mockReturnValue({
+      dashboardUid: 'ffbe00e2-803c-4d49-adb7-41aad336234f',
+      datasourceUid: 'gdev-testdata',
+    });
+    const { scene, panel } = setupTest('panel-5');
+    scene.setState({ editPanel: buildPanelEditScene(panel) });
+
+    const vizPanelManager = scene.state.editPanel!.state.vizManager;
+    vizPanelManager.activate();
+    await Promise.resolve();
+
+    expect(vizPanelManager.state.datasource).toEqual(ds1Mock);
+    expect(vizPanelManager.state.dsSettings).toEqual(instance1SettingsMock);
+  });
+
+  describe('Given a panel inside repeated row', () => {
+    it('Should include row variable scope', () => {
+      const { panel } = setupTest('panel-9');
+
+      const row = panel.parent?.parent;
+      if (!(row instanceof SceneGridRow)) {
+        throw new Error('Did not find parent row');
+      }
+
+      row.setState({
+        $variables: new SceneVariableSet({ variables: [new LocalValueVariable({ name: 'hello', value: 'A' })] }),
+      });
+
+      const editor = buildPanelEditScene(panel);
+      const variable = sceneGraph.lookupVariable('hello', editor.state.vizManager);
+      expect(variable?.getValue()).toBe('A');
     });
   });
 });

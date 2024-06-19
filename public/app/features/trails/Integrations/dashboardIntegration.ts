@@ -1,43 +1,55 @@
-import { isString } from 'lodash';
-
-import { PanelMenuItem, PanelModel } from '@grafana/data';
+import { PanelMenuItem } from '@grafana/data';
+import { PromQuery } from '@grafana/prometheus';
 import { getDataSourceSrv } from '@grafana/runtime';
 import { SceneTimeRangeLike, VizPanel } from '@grafana/scenes';
-import { DataSourceRef } from '@grafana/schema';
+import { DataQuery, DataSourceRef } from '@grafana/schema';
+import { getQueryRunnerFor } from 'app/features/dashboard-scene/utils/utils';
 
-import { DashboardModel } from '../../dashboard/state';
 import { DashboardScene } from '../../dashboard-scene/scene/DashboardScene';
 import { MetricScene } from '../MetricScene';
+import { reportExploreMetrics } from '../interactions';
 
 import { DataTrailEmbedded, DataTrailEmbeddedState } from './DataTrailEmbedded';
-import { SceneDrawerAsScene, launchSceneDrawerInGlobalModal } from './SceneDrawer';
+import { SceneDrawerAsScene } from './SceneDrawer';
 import { QueryMetric, getQueryMetrics } from './getQueryMetrics';
-import { createAdHocFilters, getQueryMetricLabel, getQueryRunner, getTimeRangeFromDashboard } from './utils';
+import { createAdHocFilters, getQueryMetricLabel, getTimeRangeFromDashboard } from './utils';
 
-export function addDataTrailPanelAction(
-  dashboard: DashboardScene | DashboardModel,
-  panel: VizPanel | PanelModel,
-  items: PanelMenuItem[]
-) {
-  const queryRunner = getQueryRunner(panel);
-  if (!queryRunner) {
+export async function addDataTrailPanelAction(dashboard: DashboardScene, panel: VizPanel, items: PanelMenuItem[]) {
+  if (panel.state.pluginId !== 'timeseries') {
     return;
   }
 
-  const ds = getDataSourceSrv().getInstanceSettings(queryRunner.state.datasource);
-
-  if (ds?.meta.id !== 'prometheus') {
+  const queryRunner = getQueryRunnerFor(panel);
+  if (queryRunner == null) {
     return;
   }
 
-  const queries = queryRunner.state.queries.map((q) => q.expr).filter(isString);
+  const { queries, datasource, data } = queryRunner.state;
 
-  const queryMetrics = getQueryMetrics(queries);
+  if (datasource == null) {
+    return;
+  }
+
+  if (datasource.type !== 'prometheus') {
+    return;
+  }
+
+  const dataSourceApi = await getDataSourceSrv().get(datasource);
+
+  if (dataSourceApi.interpolateVariablesInQueries == null) {
+    return;
+  }
+
+  const interpolated = dataSourceApi
+    .interpolateVariablesInQueries(queries, { __sceneObject: { value: panel } }, data?.request?.filters)
+    .filter(isPromQuery);
+
+  const queryMetrics = getQueryMetrics(interpolated.map((q) => q.expr));
 
   const subMenu: PanelMenuItem[] = queryMetrics.map((item) => {
     return {
       text: getQueryMetricLabel(item),
-      onClick: createClickHandler(item, dashboard, ds),
+      onClick: createClickHandler(item, dashboard, dataSourceApi),
     };
   });
 
@@ -76,11 +88,7 @@ function getEmbeddedTrailsState(
   return state;
 }
 
-function createCommonEmbeddedTrailStateProps(
-  item: QueryMetric,
-  dashboard: DashboardScene | DashboardModel,
-  ds: DataSourceRef
-) {
+function createCommonEmbeddedTrailStateProps(item: QueryMetric, dashboard: DashboardScene, ds: DataSourceRef) {
   const timeRange = getTimeRangeFromDashboard(dashboard);
   const trailState = getEmbeddedTrailsState(item, timeRange, ds.uid);
   const embeddedTrail: DataTrailEmbedded = new DataTrailEmbedded(trailState);
@@ -99,17 +107,18 @@ function createCommonEmbeddedTrailStateProps(
   return commonProps;
 }
 
-function createClickHandler(item: QueryMetric, dashboard: DashboardScene | DashboardModel, ds: DataSourceRef) {
-  if (dashboard instanceof DashboardScene) {
-    return () => {
-      const commonProps = createCommonEmbeddedTrailStateProps(item, dashboard, ds);
-      const drawerScene = new SceneDrawerAsScene({
-        ...commonProps,
-        onDismiss: () => dashboard.closeModal(),
-      });
-      dashboard.showModal(drawerScene);
-    };
-  } else {
-    return () => launchSceneDrawerInGlobalModal(createCommonEmbeddedTrailStateProps(item, dashboard, ds));
-  }
+function createClickHandler(item: QueryMetric, dashboard: DashboardScene, ds: DataSourceRef) {
+  return () => {
+    const commonProps = createCommonEmbeddedTrailStateProps(item, dashboard, ds);
+    const drawerScene = new SceneDrawerAsScene({
+      ...commonProps,
+      onDismiss: () => dashboard.closeModal(),
+    });
+    reportExploreMetrics('exploration_started', { cause: 'dashboard_panel' });
+    dashboard.showModal(drawerScene);
+  };
+}
+
+export function isPromQuery(model: DataQuery): model is PromQuery {
+  return 'expr' in model;
 }

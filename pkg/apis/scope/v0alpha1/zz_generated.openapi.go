@@ -16,13 +16,112 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.Scope":              schema_pkg_apis_scope_v0alpha1_Scope(ref),
-		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboard":     schema_pkg_apis_scope_v0alpha1_ScopeDashboard(ref),
-		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboardList": schema_pkg_apis_scope_v0alpha1_ScopeDashboardList(ref),
-		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboardSpec": schema_pkg_apis_scope_v0alpha1_ScopeDashboardSpec(ref),
-		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeFilter":        schema_pkg_apis_scope_v0alpha1_ScopeFilter(ref),
-		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeList":          schema_pkg_apis_scope_v0alpha1_ScopeList(ref),
-		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeSpec":          schema_pkg_apis_scope_v0alpha1_ScopeSpec(ref),
+		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.FindScopeDashboardBindingsResults": schema_pkg_apis_scope_v0alpha1_FindScopeDashboardBindingsResults(ref),
+		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.FindScopeNodeChildrenResults":      schema_pkg_apis_scope_v0alpha1_FindScopeNodeChildrenResults(ref),
+		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.Scope":                             schema_pkg_apis_scope_v0alpha1_Scope(ref),
+		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboardBinding":             schema_pkg_apis_scope_v0alpha1_ScopeDashboardBinding(ref),
+		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboardBindingList":         schema_pkg_apis_scope_v0alpha1_ScopeDashboardBindingList(ref),
+		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboardBindingSpec":         schema_pkg_apis_scope_v0alpha1_ScopeDashboardBindingSpec(ref),
+		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeFilter":                       schema_pkg_apis_scope_v0alpha1_ScopeFilter(ref),
+		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeList":                         schema_pkg_apis_scope_v0alpha1_ScopeList(ref),
+		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeNode":                         schema_pkg_apis_scope_v0alpha1_ScopeNode(ref),
+		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeNodeList":                     schema_pkg_apis_scope_v0alpha1_ScopeNodeList(ref),
+		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeNodeSpec":                     schema_pkg_apis_scope_v0alpha1_ScopeNodeSpec(ref),
+		"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeSpec":                         schema_pkg_apis_scope_v0alpha1_ScopeSpec(ref),
+	}
+}
+
+func schema_pkg_apis_scope_v0alpha1_FindScopeDashboardBindingsResults(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboardBinding"),
+									},
+								},
+							},
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboardBinding"},
+	}
+}
+
+func schema_pkg_apis_scope_v0alpha1_FindScopeNodeChildrenResults(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeNode"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeNode", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
@@ -66,7 +165,7 @@ func schema_pkg_apis_scope_v0alpha1_Scope(ref common.ReferenceCallback) common.O
 	}
 }
 
-func schema_pkg_apis_scope_v0alpha1_ScopeDashboard(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_scope_v0alpha1_ScopeDashboardBinding(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -95,18 +194,18 @@ func schema_pkg_apis_scope_v0alpha1_ScopeDashboard(ref common.ReferenceCallback)
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboardSpec"),
+							Ref:     ref("github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboardBindingSpec"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboardSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboardBindingSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_scope_v0alpha1_ScopeDashboardList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_scope_v0alpha1_ScopeDashboardBindingList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -139,7 +238,7 @@ func schema_pkg_apis_scope_v0alpha1_ScopeDashboardList(ref common.ReferenceCallb
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboard"),
+										Ref:     ref("github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboardBinding"),
 									},
 								},
 							},
@@ -149,31 +248,31 @@ func schema_pkg_apis_scope_v0alpha1_ScopeDashboardList(ref common.ReferenceCallb
 			},
 		},
 		Dependencies: []string{
-			"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboard", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeDashboardBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
-func schema_pkg_apis_scope_v0alpha1_ScopeDashboardSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_scope_v0alpha1_ScopeDashboardBindingSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
-					"dashboardUids": {
+					"dashboard": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: "",
-										Type:    []string{"string"},
-										Format:  "",
-									},
-								},
-							},
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
 						},
 					},
-					"scopeUid": {
+					"dashboardTitle": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"scope": {
 						SchemaProps: spec.SchemaProps{
 							Default: "",
 							Type:    []string{"string"},
@@ -181,7 +280,7 @@ func schema_pkg_apis_scope_v0alpha1_ScopeDashboardSpec(ref common.ReferenceCallb
 						},
 					},
 				},
-				Required: []string{"dashboardUids", "scopeUid"},
+				Required: []string{"dashboard", "dashboardTitle", "scope"},
 			},
 		},
 	}
@@ -209,9 +308,11 @@ func schema_pkg_apis_scope_v0alpha1_ScopeFilter(ref common.ReferenceCallback) co
 					},
 					"operator": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "Possible enum values:\n - `\"equals\"`\n - `\"not-equals\"`\n - `\"regex-match\"`\n - `\"regex-not-match\"`",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"equals", "not-equals", "regex-match", "regex-not-match"},
 						},
 					},
 				},
@@ -268,6 +369,156 @@ func schema_pkg_apis_scope_v0alpha1_ScopeList(ref common.ReferenceCallback) comm
 	}
 }
 
+func schema_pkg_apis_scope_v0alpha1_ScopeNode(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeNodeSpec"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeNodeSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_scope_v0alpha1_ScopeNodeList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeNode"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/grafana/grafana/pkg/apis/scope/v0alpha1.ScopeNode", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_pkg_apis_scope_v0alpha1_ScopeNodeSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"parentName": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"nodeType": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Possible enum values:\n - `\"container\"`\n - `\"leaf\"`",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"container", "leaf"},
+						},
+					},
+					"title": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"description": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"disableMultiSelect": {
+						SchemaProps: spec.SchemaProps{
+							Default: false,
+							Type:    []string{"boolean"},
+							Format:  "",
+						},
+					},
+					"linkType": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Possible enum values:\n - `\"scope\"`",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"scope"},
+						},
+					},
+					"linkId": {
+						SchemaProps: spec.SchemaProps{
+							Description: "scope (later more things)",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"nodeType", "title", "disableMultiSelect"},
+			},
+		},
+	}
+}
+
 func schema_pkg_apis_scope_v0alpha1_ScopeSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -281,13 +532,6 @@ func schema_pkg_apis_scope_v0alpha1_ScopeSpec(ref common.ReferenceCallback) comm
 							Format:  "",
 						},
 					},
-					"type": {
-						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
-						},
-					},
 					"description": {
 						SchemaProps: spec.SchemaProps{
 							Default: "",
@@ -295,14 +539,12 @@ func schema_pkg_apis_scope_v0alpha1_ScopeSpec(ref common.ReferenceCallback) comm
 							Format:  "",
 						},
 					},
-					"category": {
-						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
-						},
-					},
 					"filters": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Type: []string{"array"},
 							Items: &spec.SchemaOrArray{
@@ -316,7 +558,7 @@ func schema_pkg_apis_scope_v0alpha1_ScopeSpec(ref common.ReferenceCallback) comm
 						},
 					},
 				},
-				Required: []string{"title", "type", "description", "category", "filters"},
+				Required: []string{"title", "description", "filters"},
 			},
 		},
 		Dependencies: []string{

@@ -15,10 +15,6 @@ const influxdbPlugin = async () =>
 const lokiPlugin = async () => await import(/* webpackChunkName: "lokiPlugin" */ 'app/plugins/datasource/loki/module');
 const mixedPlugin = async () =>
   await import(/* webpackChunkName: "mixedPlugin" */ 'app/plugins/datasource/mixed/module');
-const mysqlPlugin = async () =>
-  await import(/* webpackChunkName: "mysqlPlugin" */ 'app/plugins/datasource/mysql/module');
-const postgresPlugin = async () =>
-  await import(/* webpackChunkName: "postgresPlugin" */ 'app/plugins/datasource/grafana-postgresql-datasource/module');
 const prometheusPlugin = async () =>
   await import(/* webpackChunkName: "prometheusPlugin" */ 'app/plugins/datasource/prometheus/module');
 const mssqlPlugin = async () =>
@@ -26,6 +22,7 @@ const mssqlPlugin = async () =>
 const alertmanagerPlugin = async () =>
   await import(/* webpackChunkName: "alertmanagerPlugin" */ 'app/plugins/datasource/alertmanager/module');
 
+import { config } from '@grafana/runtime';
 import * as alertListPanel from 'app/plugins/panel/alertlist/module';
 import * as annoListPanel from 'app/plugins/panel/annolist/module';
 import * as barChartPanel from 'app/plugins/panel/barchart/module';
@@ -51,12 +48,18 @@ import * as timeseriesPanel from 'app/plugins/panel/timeseries/module';
 import * as tracesPanel from 'app/plugins/panel/traces/module';
 import * as trendPanel from 'app/plugins/panel/trend/module';
 import * as welcomeBanner from 'app/plugins/panel/welcome/module';
-import * as xyChartPanel from 'app/plugins/panel/xychart/module';
 
 // Async loaded panels
 const geomapPanel = async () => await import(/* webpackChunkName: "geomapPanel" */ 'app/plugins/panel/geomap/module');
 const canvasPanel = async () => await import(/* webpackChunkName: "canvasPanel" */ 'app/plugins/panel/canvas/module');
 const graphPanel = async () => await import(/* webpackChunkName: "graphPlugin" */ 'app/plugins/panel/graph/module');
+const xychartPanel = async () => {
+  if (config.featureToggles.autoMigrateXYChartPanel) {
+    return await import(/* webpackChunkName: "xychart2" */ 'app/plugins/panel/xychart/v2/module');
+  } else {
+    return await import(/* webpackChunkName: "xychart" */ 'app/plugins/panel/xychart/module');
+  }
+};
 const heatmapPanel = async () =>
   await import(/* webpackChunkName: "heatmapPanel" */ 'app/plugins/panel/heatmap/module');
 const tableOldPanel = async () =>
@@ -76,8 +79,6 @@ const builtInPlugins: Record<string, System.Module | (() => Promise<System.Modul
   'core:plugin/influxdb': influxdbPlugin,
   'core:plugin/loki': lokiPlugin,
   'core:plugin/mixed': mixedPlugin,
-  'core:plugin/mysql': mysqlPlugin,
-  'core:plugin/grafana-postgresql-datasource': postgresPlugin,
   'core:plugin/mssql': mssqlPlugin,
   'core:plugin/prometheus': prometheusPlugin,
   'core:plugin/alertmanager': alertmanagerPlugin,
@@ -89,7 +90,7 @@ const builtInPlugins: Record<string, System.Module | (() => Promise<System.Modul
   'core:plugin/status-history': statusHistoryPanel,
   'core:plugin/candlestick': candlestickPanel,
   'core:plugin/graph': graphPanel,
-  'core:plugin/xychart': xyChartPanel,
+  'core:plugin/xychart': xychartPanel,
   'core:plugin/geomap': geomapPanel,
   'core:plugin/canvas': canvasPanel,
   'core:plugin/dashlist': dashListPanel,

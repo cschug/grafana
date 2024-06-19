@@ -16,7 +16,6 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -29,8 +28,8 @@ import (
 	"github.com/grafana/grafana-azure-sdk-go/v2/azsettings"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/gtime"
 
+	"github.com/grafana/grafana/pkg/apimachinery/identity"
 	"github.com/grafana/grafana/pkg/infra/log"
-	"github.com/grafana/grafana/pkg/models/roletype"
 	"github.com/grafana/grafana/pkg/util"
 	"github.com/grafana/grafana/pkg/util/osutil"
 )
@@ -91,27 +90,28 @@ type Cfg struct {
 	appliedEnvOverrides          []string
 
 	// HTTP Server Settings
-	CertFile         string
-	KeyFile          string
-	HTTPAddr         string
-	HTTPPort         string
-	Env              string
-	AppURL           string
-	AppSubURL        string
-	InstanceName     string
-	ServeFromSubPath bool
-	StaticRootPath   string
-	Protocol         Scheme
-	SocketGid        int
-	SocketMode       int
-	SocketPath       string
-	RouterLogging    bool
-	Domain           string
-	CDNRootURL       *url.URL
-	ReadTimeout      time.Duration
-	EnableGzip       bool
-	EnforceDomain    bool
-	MinTLSVersion    string
+	CertFile          string
+	KeyFile           string
+	CertWatchInterval time.Duration
+	HTTPAddr          string
+	HTTPPort          string
+	Env               string
+	AppURL            string
+	AppSubURL         string
+	InstanceName      string
+	ServeFromSubPath  bool
+	StaticRootPath    string
+	Protocol          Scheme
+	SocketGid         int
+	SocketMode        int
+	SocketPath        string
+	RouterLogging     bool
+	Domain            string
+	CDNRootURL        *url.URL
+	ReadTimeout       time.Duration
+	EnableGzip        bool
+	EnforceDomain     bool
+	MinTLSVersion     string
 
 	// Security settings
 	SecretKey             string
@@ -240,9 +240,6 @@ type Cfg struct {
 	IDResponseHeaderEnabled       bool
 	IDResponseHeaderPrefix        string
 	IDResponseHeaderNamespaces    map[string]struct{}
-	// Not documented & not supported
-	// stand in until a more complete solution is implemented
-	AuthConfigUIAdminAccess bool
 
 	// AWS Plugin Auth
 	AWSAllowedAuthProviders   []string
@@ -263,11 +260,8 @@ type Cfg struct {
 	OAuthCookieMaxAge             int
 	OAuthAllowInsecureEmailLookup bool
 
-	JWTAuth AuthJWTSettings
-	// Extended JWT Auth
-	ExtendedJWTAuthEnabled    bool
-	ExtendedJWTExpectIssuer   string
-	ExtendedJWTExpectAudience string
+	JWTAuth    AuthJWTSettings
+	ExtJWTAuth ExtJWTSettings
 
 	// SSO Settings Auth
 	SSOSettingsReloadInterval        time.Duration
@@ -326,6 +320,9 @@ type Cfg struct {
 
 	// GrafanaJavascriptAgent config
 	GrafanaJavascriptAgent GrafanaJavascriptAgent
+
+	// accessactionsets
+	OnlyStoreAccessActionSets bool
 
 	// Data sources
 	DataSourceLimit int
@@ -437,6 +434,9 @@ type Cfg struct {
 	// Defaults to GrafanaComURL setting + "/api" if unset.
 	GrafanaComAPIURL string
 
+	// Grafana.com SSO API token used for Unified SSO between instances and Grafana.com.
+	GrafanaComSSOAPIToken string
+
 	// Geomap base layer config
 	GeomapDefaultBaseLayerConfig map[string]any
 	GeomapEnableCustomBaseLayers bool
@@ -474,10 +474,15 @@ type Cfg struct {
 	// RBAC single organization. This configuration option is subject to change.
 	RBACSingleOrganization bool
 
+	Zanzana ZanzanaSettings
+
 	// GRPC Server.
-	GRPCServerNetwork   string
-	GRPCServerAddress   string
-	GRPCServerTLSConfig *tls.Config
+	GRPCServerNetwork        string
+	GRPCServerAddress        string
+	GRPCServerTLSConfig      *tls.Config
+	GRPCServerEnableLogging  bool // log request and response of each unary gRPC call
+	GRPCServerMaxRecvMsgSize int
+	GRPCServerMaxSendMsgSize int
 
 	CustomResponseHeaders map[string]string
 
@@ -494,7 +499,7 @@ type Cfg struct {
 	PublicDashboardsEnabled bool
 
 	// Cloud Migration
-	CloudMigrationIsTarget bool
+	CloudMigration CloudMigrationSettings
 
 	// Feature Management Settings
 	FeatureManagement FeatureMgmtSettings
@@ -520,6 +525,9 @@ type Cfg struct {
 	// Experimental scope settings
 	ScopesListScopesURL     string
 	ScopesListDashboardsURL string
+
+	//Short Links
+	ShortLinkExpiration int
 }
 
 // AddChangePasswordLink returns if login form is disabled or not since
@@ -575,6 +583,7 @@ func RedactedValue(key, value string) string {
 		"VAULT_TOKEN",
 		"CLIENT_SECRET",
 		"ENTERPRISE_LICENSE",
+		"GF_ENTITY_API_DB_PASS",
 	} {
 		if match, err := regexp.MatchString(pattern, uppercased); match && err == nil {
 			return RedactedPassword
@@ -1014,9 +1023,9 @@ func (cfg *Cfg) validateStaticRootPath() error {
 func (cfg *Cfg) Load(args CommandLineArgs) error {
 	cfg.setHomePath(args)
 
-	// Fix for missing IANA db on Windows
+	// Fix for missing IANA db on Windows or Alpine
 	_, zoneInfoSet := os.LookupEnv(zoneInfo)
-	if runtime.GOOS == "windows" && !zoneInfoSet {
+	if !zoneInfoSet {
 		if err := os.Setenv(zoneInfo, filepath.Join(cfg.HomePath, "tools", "zoneinfo.zip")); err != nil {
 			cfg.Logger.Error("Can't set ZONEINFO environment variable", "err", err)
 		}
@@ -1105,6 +1114,9 @@ func (cfg *Cfg) parseINIFile(iniFile *ini.File) error {
 	readOAuth2ServerSettings(cfg)
 
 	readAccessControlSettings(iniFile, cfg)
+
+	cfg.readZanzanaSettings()
+
 	if err := cfg.readRenderingSettings(iniFile); err != nil {
 		return err
 	}
@@ -1162,6 +1174,14 @@ func (cfg *Cfg) parseINIFile(iniFile *ini.File) error {
 	queryHistory := iniFile.Section("query_history")
 	cfg.QueryHistoryEnabled = queryHistory.Key("enabled").MustBool(true)
 
+	shortLinks := iniFile.Section("short_links")
+	cfg.ShortLinkExpiration = shortLinks.Key("expire_time").MustInt(7)
+
+	if cfg.ShortLinkExpiration > 365 {
+		cfg.Logger.Warn("short_links expire_time must be less than 366 days. Setting to 365 days")
+		cfg.ShortLinkExpiration = 365
+	}
+
 	panelsSection := iniFile.Section("panels")
 	cfg.DisableSanitizeHtml = panelsSection.Key("disable_sanitize_html").MustBool(false)
 
@@ -1188,6 +1208,7 @@ func (cfg *Cfg) parseINIFile(iniFile *ini.File) error {
 	cfg.handleAWSConfig()
 	cfg.readAzureSettings()
 	cfg.readAuthJWTSettings()
+	cfg.readAuthExtJWTSettings()
 	cfg.readAuthProxySettings()
 	cfg.readSessionConfig()
 	if err := cfg.readSmtpSettings(); err != nil {
@@ -1231,7 +1252,7 @@ func (cfg *Cfg) parseINIFile(iniFile *ini.File) error {
 	cfg.GrafanaComURL = grafanaComUrl
 
 	cfg.GrafanaComAPIURL = valueAsString(iniFile.Section("grafana_com"), "api_url", grafanaComUrl+"/api")
-
+	cfg.GrafanaComSSOAPIToken = valueAsString(iniFile.Section("grafana_com"), "sso_api_token", "")
 	imageUploadingSection := iniFile.Section("external_image_storage")
 	cfg.ImageUploadProvider = valueAsString(imageUploadingSection, "provider", "")
 
@@ -1493,7 +1514,7 @@ func readSecuritySettings(iniFile *ini.File, cfg *Cfg) error {
 	cfg.StrictTransportSecurityMaxAge = security.Key("strict_transport_security_max_age_seconds").MustInt(86400)
 	cfg.StrictTransportSecurityPreload = security.Key("strict_transport_security_preload").MustBool(false)
 	cfg.StrictTransportSecuritySubDomains = security.Key("strict_transport_security_subdomains").MustBool(false)
-	cfg.AngularSupportEnabled = security.Key("angular_support_enabled").MustBool(true)
+	cfg.AngularSupportEnabled = security.Key("angular_support_enabled").MustBool(false)
 	cfg.CSPEnabled = security.Key("content_security_policy").MustBool(false)
 	cfg.CSPTemplate = security.Key("content_security_policy_template").MustString("")
 	cfg.CSPReportOnlyEnabled = security.Key("content_security_policy_report_only").MustBool(false)
@@ -1557,9 +1578,6 @@ func readAuthSettings(iniFile *ini.File, cfg *Cfg) (err error) {
 		cfg.TokenRotationIntervalMinutes = 2
 	}
 
-	// Do not use
-	cfg.AuthConfigUIAdminAccess = auth.Key("config_ui_admin_access").MustBool(false)
-
 	cfg.DisableLoginForm = auth.Key("disable_login_form").MustBool(false)
 	cfg.DisableSignoutMenu = auth.Key("disable_signout_menu").MustBool(false)
 
@@ -1571,11 +1589,9 @@ func readAuthSettings(iniFile *ini.File, cfg *Cfg) (err error) {
 
 	cfg.OAuthCookieMaxAge = auth.Key("oauth_state_cookie_max_age").MustInt(600)
 	cfg.SignoutRedirectUrl = valueAsString(auth, "signout_redirect_url", "")
+
 	// Deprecated
-	cfg.OAuthSkipOrgRoleUpdateSync = auth.Key("oauth_skip_org_role_update_sync").MustBool(false)
-	if cfg.OAuthSkipOrgRoleUpdateSync {
-		cfg.Logger.Warn("[Deprecated] The oauth_skip_org_role_update_sync configuration setting is deprecated. Please use skip_org_role_sync inside the auth provider section instead.")
-	}
+	cfg.OAuthSkipOrgRoleUpdateSync = false
 
 	cfg.DisableLogin = auth.Key("disable_login").MustBool(false)
 
@@ -1609,12 +1625,6 @@ func readAuthSettings(iniFile *ini.File, cfg *Cfg) (err error) {
 	cfg.BasicAuthEnabled = authBasic.Key("enabled").MustBool(true)
 	cfg.BasicAuthStrongPasswordPolicy = authBasic.Key("password_policy").MustBool(false)
 
-	// Extended JWT auth
-	authExtendedJWT := cfg.SectionWithEnvOverrides("auth.extended_jwt")
-	cfg.ExtendedJWTAuthEnabled = authExtendedJWT.Key("enabled").MustBool(false)
-	cfg.ExtendedJWTExpectAudience = authExtendedJWT.Key("expect_audience").MustString("")
-	cfg.ExtendedJWTExpectIssuer = authExtendedJWT.Key("expect_issuer").MustString("")
-
 	// SSO Settings
 	ssoSettings := iniFile.Section("sso_settings")
 	cfg.SSOSettingsReloadInterval = ssoSettings.Key("reload_interval").MustDuration(1 * time.Minute)
@@ -1633,6 +1643,7 @@ func readAccessControlSettings(iniFile *ini.File, cfg *Cfg) {
 	cfg.RBACPermissionValidationEnabled = rbac.Key("permission_validation_enabled").MustBool(false)
 	cfg.RBACResetBasicRoles = rbac.Key("reset_basic_roles").MustBool(false)
 	cfg.RBACSingleOrganization = rbac.Key("single_organization").MustBool(false)
+	cfg.OnlyStoreAccessActionSets = rbac.Key("only_store_access_action_sets").MustBool(false)
 }
 
 func readOAuth2ServerSettings(cfg *Cfg) {
@@ -1650,14 +1661,16 @@ func readUserSettings(iniFile *ini.File, cfg *Cfg) error {
 	cfg.AutoAssignOrgId = users.Key("auto_assign_org_id").MustInt(1)
 	cfg.LoginDefaultOrgId = users.Key("login_default_org_id").MustInt64(-1)
 	cfg.AutoAssignOrgRole = users.Key("auto_assign_org_role").In(
-		string(roletype.RoleViewer), []string{
-			string(roletype.RoleNone),
-			string(roletype.RoleViewer),
-			string(roletype.RoleEditor),
-			string(roletype.RoleAdmin)})
+		string(identity.RoleViewer), []string{
+			string(identity.RoleNone),
+			string(identity.RoleViewer),
+			string(identity.RoleEditor),
+			string(identity.RoleAdmin)})
 	cfg.VerifyEmailEnabled = users.Key("verify_email_enabled").MustBool(false)
 
-	cfg.CaseInsensitiveLogin = users.Key("case_insensitive_login").MustBool(true)
+	// Deprecated
+	// cfg.CaseInsensitiveLogin = users.Key("case_insensitive_login").MustBool(true)
+	cfg.CaseInsensitiveLogin = true
 
 	cfg.LoginHint = valueAsString(users, "login_hint", "")
 	cfg.PasswordHint = valueAsString(users, "password_hint", "")
@@ -1769,6 +1782,9 @@ func readGRPCServerSettings(cfg *Cfg, iniFile *ini.File) error {
 
 	cfg.GRPCServerNetwork = valueAsString(server, "network", "tcp")
 	cfg.GRPCServerAddress = valueAsString(server, "address", "")
+	cfg.GRPCServerEnableLogging = server.Key("enable_logging").MustBool(false)
+	cfg.GRPCServerMaxRecvMsgSize = server.Key("max_recv_msg_size").MustInt(0)
+	cfg.GRPCServerMaxSendMsgSize = server.Key("max_send_msg_size").MustInt(0)
 	switch cfg.GRPCServerNetwork {
 	case "unix":
 		if cfg.GRPCServerAddress != "" {
@@ -1839,6 +1855,7 @@ func (cfg *Cfg) readServerSettings(iniFile *ini.File) error {
 	cfg.AppSubURL = AppSubUrl
 	cfg.Protocol = HTTPScheme
 	cfg.ServeFromSubPath = server.Key("serve_from_sub_path").MustBool(false)
+	cfg.CertWatchInterval = server.Key("certs_watch_interval").MustDuration(0)
 
 	protocolStr := valueAsString(server, "protocol", "http")
 
@@ -1973,19 +1990,23 @@ func (cfg *Cfg) readLiveSettings(iniFile *ini.File) error {
 	cfg.LiveHAEngineAddress = section.Key("ha_engine_address").MustString("127.0.0.1:6379")
 	cfg.LiveHAEnginePassword = section.Key("ha_engine_password").MustString("")
 
-	var originPatterns []string
 	allowedOrigins := section.Key("allowed_origins").MustString("")
-	for _, originPattern := range strings.Split(allowedOrigins, ",") {
+	origins := strings.Split(allowedOrigins, ",")
+
+	originPatterns := make([]string, 0, len(origins))
+	for _, originPattern := range origins {
 		originPattern = strings.TrimSpace(originPattern)
 		if originPattern == "" {
 			continue
 		}
 		originPatterns = append(originPatterns, originPattern)
 	}
+
 	_, err := GetAllowedOriginGlobs(originPatterns)
 	if err != nil {
 		return err
 	}
+
 	cfg.LiveAllowedOrigins = originPatterns
 	return nil
 }
@@ -1993,9 +2014,4 @@ func (cfg *Cfg) readLiveSettings(iniFile *ini.File) error {
 func (cfg *Cfg) readPublicDashboardsSettings() {
 	publicDashboards := cfg.Raw.Section("public_dashboards")
 	cfg.PublicDashboardsEnabled = publicDashboards.Key("enabled").MustBool(true)
-}
-
-func (cfg *Cfg) readCloudMigrationSettings() {
-	cloudMigration := cfg.Raw.Section("cloud_migration")
-	cfg.CloudMigrationIsTarget = cloudMigration.Key("is_target").MustBool(false)
 }

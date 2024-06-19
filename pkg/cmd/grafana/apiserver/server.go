@@ -1,30 +1,33 @@
 package apiserver
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
 	"path"
 
+	"github.com/grafana/pyroscope-go/godeltaprof/http/pprof"
+	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/apiserver/pkg/server/mux"
 	"k8s.io/client-go/tools/clientcmd"
 	netutils "k8s.io/utils/net"
 
 	"github.com/grafana/grafana/pkg/apiserver/builder"
 	"github.com/grafana/grafana/pkg/infra/log"
+	"github.com/grafana/grafana/pkg/infra/tracing"
 	grafanaAPIServer "github.com/grafana/grafana/pkg/services/apiserver"
 	"github.com/grafana/grafana/pkg/services/apiserver/standalone"
 	standaloneoptions "github.com/grafana/grafana/pkg/services/apiserver/standalone/options"
 	"github.com/grafana/grafana/pkg/services/apiserver/utils"
 	"github.com/grafana/grafana/pkg/setting"
-	"github.com/spf13/pflag"
 )
 
 const (
-	defaultEtcdPathPrefix = "/registry/grafana.app"
-	dataPath              = "data/grafana-apiserver" // same as grafana core
+	dataPath = "data/grafana-apiserver" // same as grafana core
 )
 
 // APIServerOptions contains the state for the apiserver
@@ -50,10 +53,10 @@ func newAPIServerOptions(out, errOut io.Writer) *APIServerOptions {
 	}
 }
 
-func (o *APIServerOptions) loadAPIGroupBuilders(apis []schema.GroupVersion) error {
+func (o *APIServerOptions) loadAPIGroupBuilders(ctx context.Context, tracer tracing.Tracer, apis []schema.GroupVersion) error {
 	o.builders = []builder.APIGroupBuilder{}
 	for _, gv := range apis {
-		api, err := o.factory.MakeAPIServer(gv)
+		api, err := o.factory.MakeAPIServer(ctx, tracer, gv)
 		if err != nil {
 			return err
 		}
@@ -98,6 +101,13 @@ func (o *APIServerOptions) Config() (*genericapiserver.RecommendedConfig, error)
 
 	if err := o.Options.ApplyTo(serverConfig); err != nil {
 		return nil, fmt.Errorf("failed to apply options to server config: %w", err)
+	}
+
+	if factoryOptions := o.factory.GetOptions(); factoryOptions != nil {
+		err := factoryOptions.ApplyTo(serverConfig)
+		if err != nil {
+			return nil, fmt.Errorf("factory's applyTo func failed: %s", err.Error())
+		}
 	}
 
 	serverConfig.DisabledPostStartHooks = serverConfig.DisabledPostStartHooks.Insert("generic-apiserver-start-informers")
@@ -154,7 +164,8 @@ func (o *APIServerOptions) RunAPIServer(config *genericapiserver.RecommendedConf
 	}
 
 	// Install the API Group+version
-	err = builder.InstallAPIs(grafanaAPIServer.Scheme, grafanaAPIServer.Codecs, server, config.RESTOptionsGetter, o.builders, true)
+	// #TODO figure out how to configure storage type in o.Options.StorageOptions
+	err = builder.InstallAPIs(grafanaAPIServer.Scheme, grafanaAPIServer.Codecs, server, config.RESTOptionsGetter, o.builders, o.Options.StorageOptions, o.Options.MetricsOptions.MetricsRegisterer)
 	if err != nil {
 		return err
 	}
@@ -169,5 +180,19 @@ func (o *APIServerOptions) RunAPIServer(config *genericapiserver.RecommendedConf
 		}
 	}
 
+	if config.EnableProfiling {
+		deltaProfiling{}.Install(server.Handler.NonGoRestfulMux)
+	}
+
 	return server.PrepareRun().Run(stopCh)
+}
+
+// deltaProfiling adds godeltapprof handlers for pprof under /debug/pprof.
+type deltaProfiling struct{}
+
+// Install register godeltapprof handlers to the given mux.
+func (d deltaProfiling) Install(c *mux.PathRecorderMux) {
+	c.UnlistedHandleFunc("/debug/pprof/delta_heap", pprof.Heap)
+	c.UnlistedHandleFunc("/debug/pprof/delta_block", pprof.Block)
+	c.UnlistedHandleFunc("/debug/pprof/delta_mutex", pprof.Mutex)
 }

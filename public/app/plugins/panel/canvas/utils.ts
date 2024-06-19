@@ -4,15 +4,13 @@ import { AppEvents, Field, getFieldDisplayName, LinkModel, PluginState, Selectab
 import appEvents from 'app/core/app_events';
 import { hasAlphaPanels, config } from 'app/core/config';
 import {
-  defaultElementItems,
-  advancedElementItems,
-  CanvasElementItem,
-  canvasElementRegistry,
-  CanvasElementOptions,
   CanvasConnection,
+  CanvasElementItem,
+  CanvasElementOptions,
   ConnectionDirection,
-} from 'app/features/canvas';
+} from 'app/features/canvas/element';
 import { notFoundItem } from 'app/features/canvas/elements/notFound';
+import { advancedElementItems, canvasElementRegistry, defaultElementItems } from 'app/features/canvas/registry';
 import { ElementState } from 'app/features/canvas/runtime/element';
 import { FrameState } from 'app/features/canvas/runtime/frame';
 import { Scene, SelectionParams } from 'app/features/canvas/runtime/scene';
@@ -119,7 +117,9 @@ const addDataLinkForField = (
 ): void => {
   if (field?.getLinks) {
     const disp = field.display ? field.display(data) : { text: `${data}`, numeric: +data! };
-    field.getLinks({ calculatedValue: disp }).forEach((link) => {
+    // TODO add more control over which row index each element uses
+    const valueRowIndex = field.values.length - 1;
+    field.getLinks({ calculatedValue: disp, valueRowIndex }).forEach((link) => {
       const key = `${link.title}/${link.href}`;
       if (!linkLookup.has(key)) {
         links.push(link);
@@ -148,11 +148,11 @@ export function getDataLinks(
 
     // Text config
     const isTextTiedToFieldData =
-      elementConfig.text?.field &&
-      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig.text?.field);
+      elementConfig?.text?.field &&
+      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig?.text?.field);
     const isTextColorTiedToFieldData =
-      elementConfig.color?.field &&
-      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig.color?.field);
+      elementConfig?.color?.field &&
+      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig?.color?.field);
 
     // General element config
     const isElementBackgroundColorTiedToFieldData =
@@ -167,36 +167,38 @@ export function getDataLinks(
 
     // Icon config
     const isIconSVGTiedToFieldData =
-      elementConfig.path?.field &&
-      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig.path?.field);
+      elementConfig?.path?.field &&
+      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig?.path?.field);
     const isIconColorTiedToFieldData =
-      elementConfig.fill?.field &&
-      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig.fill?.field);
+      elementConfig?.fill?.field &&
+      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig?.fill?.field);
 
     // Wind turbine config (maybe remove / not support this?)
     const isWindTurbineRPMTiedToFieldData =
-      elementConfig.rpm?.field &&
-      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig.rpm?.field);
+      elementConfig?.rpm?.field &&
+      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig?.rpm?.field);
 
     // Server config
     const isServerBlinkRateTiedToFieldData =
-      elementConfig.blinkRate?.field &&
-      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig.blinkRate?.field);
+      elementConfig?.blinkRate?.field &&
+      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig?.blinkRate?.field);
     const isServerStatusColorTiedToFieldData =
-      elementConfig.statusColor?.field &&
-      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig.statusColor?.field);
+      elementConfig?.statusColor?.field &&
+      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig?.statusColor?.field);
     const isServerBulbColorTiedToFieldData =
-      elementConfig.bulbColor?.field &&
-      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig.bulbColor?.field);
+      elementConfig?.bulbColor?.field &&
+      visibleFields.some((field) => getFieldDisplayName(field, frame) === elementConfig?.bulbColor?.field);
 
     if (isTextTiedToFieldData) {
-      const field = visibleFields.filter((field) => getFieldDisplayName(field, frame) === elementConfig.text?.field)[0];
+      const field = visibleFields.filter(
+        (field) => getFieldDisplayName(field, frame) === elementConfig?.text?.field
+      )[0];
       addDataLinkForField(field, data, linkLookup, links);
     }
 
     if (isTextColorTiedToFieldData) {
       const field = visibleFields.filter(
-        (field) => getFieldDisplayName(field, frame) === elementConfig.color?.field
+        (field) => getFieldDisplayName(field, frame) === elementConfig?.color?.field
       )[0];
       addDataLinkForField(field, data, linkLookup, links);
     }
@@ -223,37 +225,41 @@ export function getDataLinks(
     }
 
     if (isIconSVGTiedToFieldData) {
-      const field = visibleFields.filter((field) => getFieldDisplayName(field, frame) === elementConfig.path?.field)[0];
+      const field = visibleFields.filter(
+        (field) => getFieldDisplayName(field, frame) === elementConfig?.path?.field
+      )[0];
       addDataLinkForField(field, data, linkLookup, links);
     }
 
     if (isIconColorTiedToFieldData) {
-      const field = visibleFields.filter((field) => getFieldDisplayName(field, frame) === elementConfig.fill?.field)[0];
+      const field = visibleFields.filter(
+        (field) => getFieldDisplayName(field, frame) === elementConfig?.fill?.field
+      )[0];
       addDataLinkForField(field, data, linkLookup, links);
     }
 
     if (isWindTurbineRPMTiedToFieldData) {
-      const field = visibleFields.filter((field) => getFieldDisplayName(field, frame) === elementConfig.rpm?.field)[0];
+      const field = visibleFields.filter((field) => getFieldDisplayName(field, frame) === elementConfig?.rpm?.field)[0];
       addDataLinkForField(field, data, linkLookup, links);
     }
 
     if (isServerBlinkRateTiedToFieldData) {
       const field = visibleFields.filter(
-        (field) => getFieldDisplayName(field, frame) === elementConfig.blinkRate?.field
+        (field) => getFieldDisplayName(field, frame) === elementConfig?.blinkRate?.field
       )[0];
       addDataLinkForField(field, data, linkLookup, links);
     }
 
     if (isServerStatusColorTiedToFieldData) {
       const field = visibleFields.filter(
-        (field) => getFieldDisplayName(field, frame) === elementConfig.statusColor?.field
+        (field) => getFieldDisplayName(field, frame) === elementConfig?.statusColor?.field
       )[0];
       addDataLinkForField(field, data, linkLookup, links);
     }
 
     if (isServerBulbColorTiedToFieldData) {
       const field = visibleFields.filter(
-        (field) => getFieldDisplayName(field, frame) === elementConfig.bulbColor?.field
+        (field) => getFieldDisplayName(field, frame) === elementConfig?.bulbColor?.field
       )[0];
       addDataLinkForField(field, data, linkLookup, links);
     }
@@ -292,6 +298,8 @@ export function getConnections(sceneByName: Map<string, ElementState>) {
             target,
             info: c,
             vertices: c.vertices ?? undefined,
+            sourceOriginal: c.sourceOriginal ?? undefined,
+            targetOriginal: c.targetOriginal ?? undefined,
           });
         }
       });
@@ -312,6 +320,9 @@ export function updateConnectionsForSource(element: ElementState, scene: Scene) 
     const connections = sourceConnections.filter((con) => con.targetName !== element.getName());
     connection.source.onChange({ ...connection.source.options, connections });
   });
+
+  // Update scene connection state to clear out old connections
+  scene.connections.updateState();
 }
 
 export const calculateCoordinates = (
@@ -346,6 +357,14 @@ export const calculateCoordinates = (
   }
   x2 /= transformScale;
   y2 /= transformScale;
+
+  // TODO look into a better way to avoid division by zero
+  if (x2 - x1 === 0) {
+    x2 += 1;
+  }
+  if (y2 - y1 === 0) {
+    y2 += 1;
+  }
   return { x1, y1, x2, y2 };
 };
 
@@ -359,13 +378,21 @@ export const calculateAbsoluteCoords = (
   x2: number,
   y2: number,
   valueX: number,
-  valueY: number
+  valueY: number,
+  deltaX: number,
+  deltaY: number
 ) => {
-  return { x: valueX * (x2 - x1) + x1, y: valueY * (y2 - y1) + y1 };
+  return { x: valueX * deltaX + x1, y: valueY * deltaY + y1 };
 };
 
+// Calculate angle between two points and return angle in radians
 export const calculateAngle = (x1: number, y1: number, x2: number, y2: number) => {
-  return (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI;
+  return Math.atan2(y2 - y1, x2 - x1);
+};
+
+export const calculateDistance = (x1: number, y1: number, x2: number, y2: number) => {
+  //TODO add sqrt approx option
+  return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
 };
 
 // @TODO revisit, currently returning last row index for field
@@ -389,9 +416,23 @@ export const getConnectionStyles = (
   const lastRowIndex = getRowIndex(info.size?.field, scene);
   const strokeColor = info.color ? scene.context.getColor(info.color).value() : defaultArrowColor;
   const strokeWidth = info.size ? scene.context.getScale(info.size).get(lastRowIndex) : defaultArrowSize;
+  const strokeRadius = info.radius ? scene.context.getScale(info.radius).get(lastRowIndex) : 0;
   const arrowDirection = info.direction ? info.direction : defaultArrowDirection;
-  const lineStyle = info.lineStyle === LineStyle.Dashed ? StrokeDasharray.Dashed : StrokeDasharray.Solid;
-  return { strokeColor, strokeWidth, arrowDirection, lineStyle };
+  const lineStyle = getLineStyle(info.lineStyle?.style);
+  const shouldAnimate = info.lineStyle?.animate;
+
+  return { strokeColor, strokeWidth, strokeRadius, arrowDirection, lineStyle, shouldAnimate };
+};
+
+const getLineStyle = (lineStyle?: LineStyle) => {
+  switch (lineStyle) {
+    case LineStyle.Dashed:
+      return StrokeDasharray.Dashed;
+    case LineStyle.Dotted:
+      return StrokeDasharray.Dotted;
+    default:
+      return StrokeDasharray.Solid;
+  }
 };
 
 export const getParentBoundingClientRect = (scene: Scene) => {

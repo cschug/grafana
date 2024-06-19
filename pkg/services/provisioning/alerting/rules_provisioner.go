@@ -5,14 +5,15 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/grafana/grafana/pkg/apimachinery/identity"
 	"github.com/grafana/grafana/pkg/infra/log"
-	"github.com/grafana/grafana/pkg/infra/metrics"
-	"github.com/grafana/grafana/pkg/services/auth/identity"
+	"github.com/grafana/grafana/pkg/services/accesscontrol"
 	"github.com/grafana/grafana/pkg/services/dashboards"
 	"github.com/grafana/grafana/pkg/services/folder"
+	"github.com/grafana/grafana/pkg/services/folder/folderimpl"
 	alert_models "github.com/grafana/grafana/pkg/services/ngalert/models"
 	"github.com/grafana/grafana/pkg/services/ngalert/provisioning"
-	"github.com/grafana/grafana/pkg/services/user"
+	"github.com/grafana/grafana/pkg/services/org"
 	"github.com/grafana/grafana/pkg/util"
 )
 
@@ -22,12 +23,12 @@ type AlertRuleProvisioner interface {
 
 func NewAlertRuleProvisioner(
 	logger log.Logger,
-	dashboardService dashboards.DashboardService,
+	folderService folder.Service,
 	dashboardProvService dashboards.DashboardProvisioningService,
 	ruleService provisioning.AlertRuleService) AlertRuleProvisioner {
 	return &defaultAlertRuleProvisioner{
 		logger:               logger,
-		dashboardService:     dashboardService,
+		folderService:        folderService,
 		dashboardProvService: dashboardProvService,
 		ruleService:          ruleService,
 	}
@@ -35,7 +36,7 @@ func NewAlertRuleProvisioner(
 
 type defaultAlertRuleProvisioner struct {
 	logger               log.Logger
-	dashboardService     dashboards.DashboardService
+	folderService        folder.Service
 	dashboardProvService dashboards.DashboardProvisioningService
 	ruleService          provisioning.AlertRuleService
 }
@@ -45,13 +46,14 @@ func (prov *defaultAlertRuleProvisioner) Provision(ctx context.Context,
 	for _, file := range files {
 		for _, group := range file.Groups {
 			u := provisionerUser(group.OrgID)
-			folderUID, err := prov.getOrCreateFolderUID(ctx, group.FolderTitle, group.OrgID)
+			folderUID, err := prov.getOrCreateFolderFullpath(ctx, group.FolderFullpath, group.OrgID)
 			if err != nil {
+				prov.logger.Error("failed to get or create folder", "folder", group.FolderFullpath, "org", group.OrgID, "err", err)
 				return err
 			}
 			prov.logger.Debug("provisioning alert rule group",
 				"org", group.OrgID,
-				"folder", group.FolderTitle,
+				"folder", group.FolderFullpath,
 				"folderUID", folderUID,
 				"name", group.Title)
 			for _, rule := range group.Rules {
@@ -97,42 +99,72 @@ func (prov *defaultAlertRuleProvisioner) provisionRule(
 	return err
 }
 
-func (prov *defaultAlertRuleProvisioner) getOrCreateFolderUID(
-	ctx context.Context, folderName string, orgID int64) (string, error) {
-	metrics.MFolderIDsServiceCount.WithLabelValues(metrics.Provisioning).Inc()
-	cmd := &dashboards.GetDashboardQuery{
-		Title:    &folderName,
-		FolderID: util.Pointer(int64(0)), // nolint:staticcheck
-		OrgID:    orgID,
+func (prov *defaultAlertRuleProvisioner) getOrCreateFolderFullpath(
+	ctx context.Context, folderFullpath string, orgID int64) (string, error) {
+	folderTitles := folderimpl.SplitFullpath(folderFullpath)
+	if len(folderTitles) == 0 {
+		return "", fmt.Errorf("invalid folder fullpath: %s", folderFullpath)
 	}
-	cmdResult, err := prov.dashboardService.GetDashboard(ctx, cmd)
-	if err != nil && !errors.Is(err, dashboards.ErrDashboardNotFound) {
+
+	var folderUID *string
+	for i := range folderTitles {
+		uid, err := prov.getOrCreateFolderByTitle(ctx, folderTitles[i], orgID, folderUID)
+		if err != nil {
+			prov.logger.Error("failed to get or create folder", "folder", folderTitles[i], "org", orgID, "err", err)
+			return "", err
+		}
+		folderUID = &uid
+	}
+	return *folderUID, nil
+}
+
+func (prov *defaultAlertRuleProvisioner) getOrCreateFolderByTitle(
+	ctx context.Context, folderName string, orgID int64, parentUID *string) (string, error) {
+	cmd := &folder.GetFolderQuery{
+		Title:        &folderName,
+		ParentUID:    parentUID,
+		OrgID:        orgID,
+		SignedInUser: provisionerUser(orgID),
+	}
+
+	cmdResult, err := prov.folderService.Get(ctx, cmd)
+	if err != nil && !errors.Is(err, dashboards.ErrFolderNotFound) {
 		return "", err
 	}
 
 	// dashboard folder not found. create one.
-	if errors.Is(err, dashboards.ErrDashboardNotFound) {
+	if errors.Is(err, dashboards.ErrFolderNotFound) {
 		createCmd := &folder.CreateFolderCommand{
 			OrgID: orgID,
 			UID:   util.GenerateShortUID(),
 			Title: folderName,
 		}
-		dbDash, err := prov.dashboardProvService.SaveFolderForProvisionedDashboards(ctx, createCmd)
+
+		if parentUID != nil {
+			createCmd.ParentUID = *parentUID
+		}
+
+		f, err := prov.dashboardProvService.SaveFolderForProvisionedDashboards(ctx, createCmd)
 		if err != nil {
 			return "", err
 		}
 
-		return dbDash.UID, nil
-	}
-
-	if !cmdResult.IsFolder {
-		return "", fmt.Errorf("got invalid response. expected folder, found dashboard")
+		return f.UID, nil
 	}
 
 	return cmdResult.UID, nil
 }
 
-// UserID is 0 to use org quota
 var provisionerUser = func(orgID int64) identity.Requester {
-	return &user.SignedInUser{UserID: 0, Login: "alert_provisioner", OrgID: orgID}
+	// this user has 0 ID and therefore, organization wide quota will be applied
+	return accesscontrol.BackgroundUser(
+		"alert_provisioner",
+		orgID,
+		org.RoleAdmin,
+		[]accesscontrol.Permission{
+			{Action: dashboards.ActionFoldersRead, Scope: dashboards.ScopeFoldersAll},
+			{Action: accesscontrol.ActionAlertingProvisioningReadSecrets, Scope: dashboards.ScopeFoldersAll},
+			{Action: accesscontrol.ActionAlertingProvisioningWrite, Scope: dashboards.ScopeFoldersAll},
+		},
+	)
 }

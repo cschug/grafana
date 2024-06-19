@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/grafana/grafana/pkg/apimachinery/errutil"
 	"github.com/grafana/grafana/pkg/infra/slugify"
 	"github.com/grafana/grafana/pkg/services/annotations"
 	"github.com/grafana/grafana/pkg/services/org"
-	"github.com/grafana/grafana/pkg/util/errutil"
 )
 
 const (
@@ -332,6 +332,7 @@ const (
 	GlobalOrgID      = 0
 	NoOrgID          = int64(-1)
 	GeneralFolderUID = "general"
+	K6FolderUID      = "k6-app"
 	RoleGrafanaAdmin = "Grafana Admin"
 
 	// Permission actions
@@ -440,6 +441,10 @@ const (
 	ActionAlertingInstanceUpdate = "alert.instances:write"
 	ActionAlertingInstanceRead   = "alert.instances:read"
 
+	ActionAlertingSilencesRead   = "alert.silences:read"
+	ActionAlertingSilencesCreate = "alert.silences:create"
+	ActionAlertingSilencesWrite  = "alert.silences:write"
+
 	// Alerting Notification policies actions
 	ActionAlertingNotificationsRead  = "alert.notifications:read"
 	ActionAlertingNotificationsWrite = "alert.notifications:write"
@@ -466,9 +471,16 @@ const (
 	ActionAlertingNotificationsExternalRead  = "alert.notifications.external:read"
 
 	// Alerting provisioning actions
-	ActionAlertingProvisioningRead        = "alert.provisioning:read"
-	ActionAlertingProvisioningReadSecrets = "alert.provisioning.secrets:read"
-	ActionAlertingProvisioningWrite       = "alert.provisioning:write"
+	ActionAlertingProvisioningRead               = "alert.provisioning:read"
+	ActionAlertingProvisioningReadSecrets        = "alert.provisioning.secrets:read"
+	ActionAlertingProvisioningWrite              = "alert.provisioning:write"
+	ActionAlertingRulesProvisioningRead          = "alert.rules.provisioning:read"
+	ActionAlertingRulesProvisioningWrite         = "alert.rules.provisioning:write"
+	ActionAlertingNotificationsProvisioningRead  = "alert.notifications.provisioning:read"
+	ActionAlertingNotificationsProvisioningWrite = "alert.notifications.provisioning:write"
+
+	// ActionAlertingProvisioningSetStatus Gives access to set provisioning status to alerting resources. Cannot be used alone. Only in conjunction with other permissions.
+	ActionAlertingProvisioningSetStatus = "alert.provisioning.provenance:write"
 
 	// Feature Management actions
 	ActionFeatureManagementRead  = "featuremgmt.read"
@@ -479,6 +491,9 @@ const (
 	ActionLibraryPanelsRead   = "library.panels:read"
 	ActionLibraryPanelsWrite  = "library.panels:write"
 	ActionLibraryPanelsDelete = "library.panels:delete"
+
+	// Usage stats actions
+	ActionUsageStatsRead = "server.usagestats.report:read"
 )
 
 var (

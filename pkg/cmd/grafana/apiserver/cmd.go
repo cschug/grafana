@@ -1,6 +1,7 @@
 package apiserver
 
 import (
+	"context"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/grafana/grafana/pkg/cmd/grafana-server/commands"
 	"github.com/grafana/grafana/pkg/infra/log"
+	"github.com/grafana/grafana/pkg/infra/tracing"
 	"github.com/grafana/grafana/pkg/server"
 	"github.com/grafana/grafana/pkg/services/apiserver/standalone"
 )
@@ -47,8 +49,20 @@ func newCommandStartExampleAPIServer(o *APIServerOptions, stopCh <-chan struct{}
 				return err
 			}
 
+			// Currently TracingOptions.ApplyTo, which will configure/initialize tracing,
+			// happens after loadAPIGroupBuilders. Hack to workaround this for now to allow
+			// the tracer to be initialized at a later stage, when tracer is available.
+			// TODO: Fix so that TracingOptions.ApplyTo happens before or during loadAPIGroupBuilders.
+			tracer := newLateInitializedTracingService()
+
+			ctx, cancel := context.WithCancel(c.Context())
+			go func() {
+				<-stopCh
+				cancel()
+			}()
+
 			// Load each group from the args
-			if err := o.loadAPIGroupBuilders(apis); err != nil {
+			if err := o.loadAPIGroupBuilders(ctx, tracer, apis); err != nil {
 				return err
 			}
 
@@ -61,6 +75,12 @@ func newCommandStartExampleAPIServer(o *APIServerOptions, stopCh <-chan struct{}
 			if err != nil {
 				return err
 			}
+
+			if o.Options.TracingOptions.TracingService != nil {
+				tracer.InitTracer(o.Options.TracingOptions.TracingService)
+			}
+
+			defer o.factory.Shutdown()
 
 			if err := o.RunAPIServer(config, stopCh); err != nil {
 				return err
@@ -87,3 +107,19 @@ func RunCLI(opts commands.ServerOptions) int {
 
 	return cli.Run(cmd)
 }
+
+type lateInitializedTracingService struct {
+	tracing.Tracer
+}
+
+func newLateInitializedTracingService() *lateInitializedTracingService {
+	return &lateInitializedTracingService{
+		Tracer: tracing.InitializeTracerForTest(),
+	}
+}
+
+func (s *lateInitializedTracingService) InitTracer(tracer tracing.Tracer) {
+	s.Tracer = tracer
+}
+
+var _ tracing.Tracer = &lateInitializedTracingService{}

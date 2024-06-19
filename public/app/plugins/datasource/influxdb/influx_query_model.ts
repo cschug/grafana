@@ -1,18 +1,20 @@
 import { filter, find, indexOf, map } from 'lodash';
 
-import { escapeRegex, ScopedVars } from '@grafana/data';
+import { AdHocVariableFilter, escapeRegex, ScopedVars } from '@grafana/data';
 import { TemplateSrv } from '@grafana/runtime';
+import { QueryPart } from 'app/features/alerting/state/query_part';
 
+import { removeRegexWrapper } from './queryUtils';
 import queryPart from './query_part';
 import { DEFAULT_POLICY, InfluxQuery, InfluxQueryTag } from './types';
 
 export default class InfluxQueryModel {
   target: InfluxQuery;
-  selectModels: any[] = [];
+  selectModels: QueryPart[][] = [];
   queryBuilder: any;
-  groupByParts: any;
+  groupByParts: QueryPart[] = [];
   templateSrv: any;
-  scopedVars: any;
+  scopedVars: ScopedVars | undefined;
   refId?: string;
 
   constructor(target: InfluxQuery, templateSrv?: TemplateSrv, scopedVars?: ScopedVars) {
@@ -141,17 +143,6 @@ export default class InfluxQueryModel {
     this.updatePersistedParts();
   }
 
-  private removeRegexWrapper(str: string) {
-    const regex = /\/\^(.*?)\$\//; // match any string that starts with "/^" and ends with "$/", capturing the characters in between
-    const match = str.match(regex);
-
-    if (match && match.length > 1) {
-      return match[1];
-    } else {
-      return str;
-    }
-  }
-
   private isOperatorTypeHandler(operator: string, value: string, fieldName: string) {
     let textValue;
     if (operator === 'Is Not') {
@@ -162,7 +153,7 @@ export default class InfluxQueryModel {
 
     // Tags should always quote
     if (fieldName.endsWith('::tag')) {
-      textValue = "'" + this.removeRegexWrapper(value.replace(/\\/g, '\\\\').replace(/\'/g, "\\'")) + "'";
+      textValue = "'" + removeRegexWrapper(value.replace(/\\/g, '\\\\').replace(/\'/g, "\\'")) + "'";
       return {
         operator: operator,
         value: textValue,
@@ -180,7 +171,7 @@ export default class InfluxQueryModel {
       textValue = lowerValue;
     } else {
       // String or unrecognised: quote
-      textValue = "'" + this.removeRegexWrapper(value.replace(/\\/g, '\\\\').replace(/\'/g, "\\'")) + "'";
+      textValue = "'" + removeRegexWrapper(value.replace(/\\/g, '\\\\').replace(/\'/g, "\\'")) + "'";
     }
     return {
       operator: operator,
@@ -210,7 +201,7 @@ export default class InfluxQueryModel {
       if (interpolate) {
         value = this.templateSrv.replace(value, this.scopedVars);
       }
-      value = this.removeRegexWrapper(value);
+      value = removeRegexWrapper(value);
       if (operator.startsWith('Is')) {
         let r = this.isOperatorTypeHandler(operator, value, tag.key);
         operator = r.operator;
@@ -254,7 +245,7 @@ export default class InfluxQueryModel {
     return policy + measurement;
   }
 
-  interpolateQueryStr(value: any[], variable: { multi: any; includeAll: any }, defaultFormatFn: any) {
+  interpolateQueryStr(value: string | string[], variable: { multi: boolean; includeAll: boolean }) {
     // if no multi or include all do not regexEscape
     if (!variable.multi && !variable.includeAll) {
       return value;
@@ -343,7 +334,7 @@ export default class InfluxQueryModel {
     return query;
   }
 
-  renderAdhocFilters(filters: any[]) {
+  renderAdhocFilters(filters: AdHocVariableFilter[]) {
     const conditions = map(filters, (tag, index) => {
       return this.renderTagCondition(tag, index, true);
     });

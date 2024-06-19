@@ -1,4 +1,4 @@
-import { ScalarParameter, TabularParameter, Function } from '@kusto/monaco-kusto';
+import { ScalarParameter, TabularParameter, Function, EntityGroup } from '@kusto/monaco-kusto';
 
 import {
   DataSourceInstanceSettings,
@@ -81,6 +81,7 @@ export interface AzureDataSourceJsonData extends DataSourceJsonData {
   subscriptionId?: string;
   oauthPassThru?: boolean;
   azureCredentials?: AzureCredentials;
+  basicLogsEnabled?: boolean;
 
   // logs
   /** @deprecated Azure Logs credentials */
@@ -178,6 +179,7 @@ export interface Database {
   functions: Function[];
   majorVersion: number;
   minorVersion: number;
+  entityGroups: EntityGroup[];
 }
 
 export interface FormatAsFieldProps extends AzureQueryEditorFieldProps {

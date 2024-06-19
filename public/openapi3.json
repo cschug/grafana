@@ -173,6 +173,69 @@
         },
         "description": "(empty)"
       },
+      "cloudMigrationCreateTokenResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateAccessTokenResponseDTO"
+            }
+          }
+        },
+        "description": "(empty)"
+      },
+      "cloudMigrationDeleteTokenResponse": {
+        "description": "(empty)"
+      },
+      "cloudMigrationGetTokenResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GetAccessTokenResponseDTO"
+            }
+          }
+        },
+        "description": "(empty)"
+      },
+      "cloudMigrationRunListResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CloudMigrationRunListDTO"
+            }
+          }
+        },
+        "description": "(empty)"
+      },
+      "cloudMigrationRunResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MigrateDataResponseDTO"
+            }
+          }
+        },
+        "description": "(empty)"
+      },
+      "cloudMigrationSessionListResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CloudMigrationSessionListResponseDTO"
+            }
+          }
+        },
+        "description": "(empty)"
+      },
+      "cloudMigrationSessionResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CloudMigrationSessionResponseDTO"
+            }
+          }
+        },
+        "description": "(empty)"
+      },
       "conflictError": {
         "content": {
           "application/json": {
@@ -361,6 +424,16 @@
         },
         "description": "(empty)"
       },
+      "createSnapshotResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateSnapshotResponseDTO"
+            }
+          }
+        },
+        "description": "(empty)"
+      },
       "createTeamResponse": {
         "content": {
           "application/json": {
@@ -438,12 +511,6 @@
           "application/json": {
             "schema": {
               "properties": {
-                "id": {
-                  "description": "ID Identifier of the deleted dashboard.",
-                  "example": 65,
-                  "format": "int64",
-                  "type": "integer"
-                },
                 "message": {
                   "description": "Message Message of the deleted dashboard.",
                   "example": "Dashboard My Dashboard deleted",
@@ -453,10 +520,15 @@
                   "description": "Title Title of the deleted dashboard.",
                   "example": "My Dashboard",
                   "type": "string"
+                },
+                "uid": {
+                  "description": "UID Identifier of the deleted dashboard.",
+                  "example": "65",
+                  "type": "string"
                 }
               },
               "required": [
-                "id",
+                "uid",
                 "title",
                 "message"
               ],
@@ -1129,7 +1201,7 @@
                   "type": "string"
                 },
                 "settings": {
-                  "additionalProperties": false,
+                  "additionalProperties": {},
                   "type": "object"
                 },
                 "source": {
@@ -1184,6 +1256,16 @@
                 "$ref": "#/components/schemas/TeamDTO"
               },
               "type": "array"
+            }
+          }
+        },
+        "description": "(empty)"
+      },
+      "getSnapshotResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GetSnapshotResponseDTO"
             }
           }
         },
@@ -1409,7 +1491,7 @@
                     "type": "string"
                   },
                   "settings": {
-                    "additionalProperties": false,
+                    "additionalProperties": {},
                     "type": "object"
                   },
                   "source": {
@@ -1487,6 +1569,16 @@
                 },
                 "type": "array"
               },
+              "type": "object"
+            }
+          }
+        },
+        "description": "(empty)"
+      },
+      "noContentResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
               "type": "object"
             }
           }
@@ -1835,6 +1927,16 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/RoleAssignmentsDTO"
+            }
+          }
+        },
+        "description": "(empty)"
+      },
+      "snapshotListResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SnapshotListResponseDTO"
             }
           }
         },
@@ -2432,7 +2534,7 @@
             "type": "string"
           },
           "model": {
-            "additionalProperties": false,
+            "additionalProperties": {},
             "type": "object"
           },
           "queryType": {
@@ -2479,7 +2581,7 @@
           "condition": {
             "type": "string"
           },
-          "dasboardUid": {
+          "dashboardUid": {
             "type": "string"
           },
           "data": {
@@ -2522,6 +2624,9 @@
           "panelId": {
             "format": "int64",
             "type": "integer"
+          },
+          "record": {
+            "$ref": "#/components/schemas/AlertRuleRecordExport"
           },
           "title": {
             "type": "string"
@@ -2672,6 +2777,18 @@
         "title": "AlertRuleNotificationSettingsExport is the provisioned export of models.NotificationSettings.",
         "type": "object"
       },
+      "AlertRuleRecordExport": {
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "metric": {
+            "type": "string"
+          }
+        },
+        "title": "Record is the provisioned export of models.Record.",
+        "type": "object"
+      },
       "AlertingFileExport": {
         "properties": {
           "apiVersion": {
@@ -2768,7 +2885,7 @@
             "type": "object"
           },
           "type": {
-            "$ref": "#/components/schemas/RuleType"
+            "type": "string"
           }
         },
         "required": [
@@ -3203,6 +3320,123 @@
         "title": "BasicAuth contains basic HTTP authentication credentials.",
         "type": "object"
       },
+      "CacheConfig": {
+        "description": "Config defines the internal representation of a cache configuration, including fields not set by the API caller",
+        "properties": {
+          "created": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataSourceID": {
+            "description": "Fields that can be set by the API caller - read/write",
+            "format": "int64",
+            "type": "integer"
+          },
+          "dataSourceUID": {
+            "type": "string"
+          },
+          "defaultTTLMs": {
+            "description": "These are returned by the HTTP API, but are managed internally - read-only\nNote: 'created' and 'updated' are special properties managed automatically by xorm, but we are setting them manually",
+            "format": "int64",
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "ttlQueriesMs": {
+            "description": "TTL MS, or \"time to live\", is how long a cached item will stay in the cache before it is removed (in milliseconds)",
+            "format": "int64",
+            "type": "integer"
+          },
+          "ttlResourcesMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "updated": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "useDefaultTTL": {
+            "description": "If UseDefaultTTL is enabled, then the TTLQueriesMS and TTLResourcesMS in this object is always sent as the default TTL located in grafana.ini",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "CacheConfigResponse": {
+        "properties": {
+          "created": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataSourceID": {
+            "description": "Fields that can be set by the API caller - read/write",
+            "format": "int64",
+            "type": "integer"
+          },
+          "dataSourceUID": {
+            "type": "string"
+          },
+          "defaultTTLMs": {
+            "description": "These are returned by the HTTP API, but are managed internally - read-only\nNote: 'created' and 'updated' are special properties managed automatically by xorm, but we are setting them manually",
+            "format": "int64",
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "ttlQueriesMs": {
+            "description": "TTL MS, or \"time to live\", is how long a cached item will stay in the cache before it is removed (in milliseconds)",
+            "format": "int64",
+            "type": "integer"
+          },
+          "ttlResourcesMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "updated": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "useDefaultTTL": {
+            "description": "If UseDefaultTTL is enabled, then the TTLQueriesMS and TTLResourcesMS in this object is always sent as the default TTL located in grafana.ini",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "CacheConfigSetter": {
+        "description": "ConfigSetter defines the cache parameters that users can configure per datasource\nThis is only intended to be consumed by the SetCache HTTP Handler",
+        "properties": {
+          "dataSourceID": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "dataSourceUID": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "ttlQueriesMs": {
+            "description": "TTL MS, or \"time to live\", is how long a cached item will stay in the cache before it is removed (in milliseconds)",
+            "format": "int64",
+            "type": "integer"
+          },
+          "ttlResourcesMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "useDefaultTTL": {
+            "description": "If UseDefaultTTL is enabled, then the TTLQueriesMS and TTLResourcesMS in this object is always sent as the default TTL located in grafana.ini",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "CalculateDiffTarget": {
         "properties": {
           "dashboardId": {
@@ -3365,7 +3599,15 @@
             },
             "type": "array"
           },
+          "Policies": {
+            "description": "Policies contains all policy identifiers included in the certificate.\nIn Go 1.22, encoding/gob cannot handle and ignores this field.",
+            "items": {
+              "$ref": "#/components/schemas/OID"
+            },
+            "type": "array"
+          },
           "PolicyIdentifiers": {
+            "description": "PolicyIdentifiers contains asn1.ObjectIdentifiers, the components\nof which are limited to int32. If a certificate contains a policy which\ncannot be represented by asn1.ObjectIdentifier, it will not be included in\nPolicyIdentifiers, but will be present in Policies, which contains all parsed\npolicy OIDs.",
             "items": {
               "$ref": "#/components/schemas/ObjectIdentifier"
             },
@@ -3471,6 +3713,55 @@
         },
         "type": "object"
       },
+      "CloudMigrationRunListDTO": {
+        "properties": {
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/MigrateDataResponseListDTO"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CloudMigrationSessionListResponseDTO": {
+        "properties": {
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/CloudMigrationSessionResponseDTO"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CloudMigrationSessionRequestDTO": {
+        "properties": {
+          "authToken": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CloudMigrationSessionResponseDTO": {
+        "properties": {
+          "created": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "uid": {
+            "type": "string"
+          },
+          "updated": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "ConfFloat64": {
         "description": "ConfFloat64 is a float64. It Marshals float64 values of NaN of Inf\nto null.",
         "format": "double",
@@ -3541,15 +3832,15 @@
       "CookiePreferences": {
         "properties": {
           "analytics": {
-            "additionalProperties": false,
+            "additionalProperties": {},
             "type": "object"
           },
           "functional": {
-            "additionalProperties": false,
+            "additionalProperties": {},
             "type": "object"
           },
           "performance": {
-            "additionalProperties": false,
+            "additionalProperties": {},
             "type": "object"
           }
         },
@@ -3611,7 +3902,7 @@
             "type": "string"
           },
           "target": {
-            "additionalProperties": false,
+            "additionalProperties": {},
             "description": "Target data query",
             "example": {
               "prop1": "value1",
@@ -3644,7 +3935,7 @@
             "type": "string"
           },
           "target": {
-            "additionalProperties": false,
+            "additionalProperties": {},
             "description": "Target data query",
             "example": {
               "prop1": "value1",
@@ -3680,6 +3971,14 @@
         "format": "uint8",
         "title": "CounterResetHint contains the known information about a counter reset,",
         "type": "integer"
+      },
+      "CreateAccessTokenResponseDTO": {
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "type": "object"
       },
       "CreateCorrelationCommand": {
         "description": "CreateCorrelationCommand is the command for creating a correlation",
@@ -3966,6 +4265,14 @@
         },
         "type": "object"
       },
+      "CreateSnapshotResponseDTO": {
+        "properties": {
+          "uid": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "CreateTeamCommand": {
         "properties": {
           "email": {
@@ -4197,9 +4504,6 @@
           },
           "publicDashboardEnabled": {
             "type": "boolean"
-          },
-          "publicDashboardUid": {
-            "type": "string"
           },
           "slug": {
             "type": "string"
@@ -4840,7 +5144,9 @@
         },
         "type": "object"
       },
-      "EvalQueriesResponse": {},
+      "EvalQueriesResponse": {
+        "type": "object"
+      },
       "ExplorePanelsState": {
         "description": "This is an object constructed with the keys as the values of the enum VisType and the value being a bag of properties"
       },
@@ -4936,12 +5242,12 @@
       "FieldConfig": {
         "properties": {
           "color": {
-            "additionalProperties": false,
+            "additionalProperties": {},
             "description": "Map values to a display color\nNOTE: this interface is under development in the frontend... so simple map for now",
             "type": "object"
           },
           "custom": {
-            "additionalProperties": false,
+            "additionalProperties": {},
             "description": "Panel Specific Values",
             "type": "object"
           },
@@ -5304,6 +5610,29 @@
         },
         "type": "object"
       },
+      "GetAccessTokenResponseDTO": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "firstUsedAt": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "GetAnnotationTagsResponse": {
         "properties": {
           "result": {
@@ -5336,6 +5665,45 @@
           }
         ],
         "title": "Get home dashboard response."
+      },
+      "GetSnapshotResponseDTO": {
+        "properties": {
+          "created": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "finished": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/MigrateDataResponseItemDTO"
+            },
+            "type": "array"
+          },
+          "sessionUid": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "INITIALIZING",
+              "CREATING",
+              "PENDING_UPLOAD",
+              "UPLOADING",
+              "PENDING_PROCESSING",
+              "PROCESSING",
+              "FINISHED",
+              "ERROR",
+              "UNKNOWN"
+            ],
+            "type": "string"
+          },
+          "uid": {
+            "type": "string"
+          }
+        },
+        "type": "object"
       },
       "GettableAlertmanagers": {
         "properties": {
@@ -5616,6 +5984,9 @@
           "provenance": {
             "$ref": "#/components/schemas/Provenance"
           },
+          "record": {
+            "$ref": "#/components/schemas/Record"
+          },
           "rule_group": {
             "type": "string"
           },
@@ -5738,6 +6109,9 @@
               "$ref": "#/components/schemas/TimeIntervalItem"
             },
             "type": "array"
+          },
+          "version": {
+            "type": "string"
           }
         },
         "type": "object"
@@ -5902,7 +6276,6 @@
       "Hit": {
         "properties": {
           "folderId": {
-            "description": "Deprecated: use FolderUID instead",
             "format": "int64",
             "type": "integer"
           },
@@ -5919,8 +6292,15 @@
             "format": "int64",
             "type": "integer"
           },
+          "isDeleted": {
+            "type": "boolean"
+          },
           "isStarred": {
             "type": "boolean"
+          },
+          "permanentlyDeleteDate": {
+            "format": "date-time",
+            "type": "string"
           },
           "slug": {
             "type": "string"
@@ -5978,7 +6358,7 @@
         "type": "object"
       },
       "IPMask": {
-        "description": "See type IPNet and func ParseCIDR for details.",
+        "description": "See type [IPNet] and func [ParseCIDR] for details.",
         "items": {
           "format": "uint8",
           "type": "integer"
@@ -6604,6 +6984,59 @@
         ],
         "type": "object"
       },
+      "MigrateDataResponseDTO": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MigrateDataResponseItemDTO"
+            },
+            "type": "array"
+          },
+          "uid": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "MigrateDataResponseItemDTO": {
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "refId": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "ERROR"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "DASHBOARD",
+              "DATASOURCE",
+              "FOLDER"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "refId",
+          "status"
+        ],
+        "type": "object"
+      },
+      "MigrateDataResponseListDTO": {
+        "properties": {
+          "uid": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "MoveFolderCommand": {
         "description": "MoveFolderCommand captures the information required by the folder service\nto move a folder.",
         "properties": {
@@ -6656,7 +7089,7 @@
         "type": "array"
       },
       "Name": {
-        "description": "Name represents an X.509 distinguished name. This only includes the common\nelements of a DN. Note that Name is only an approximation of the X.509\nstructure. If an accurate representation is needed, asn1.Unmarshal the raw\nsubject or issuer as an RDNSequence.",
+        "description": "Name represents an X.509 distinguished name. This only includes the common\nelements of a DN. Note that Name is only an approximation of the X.509\nstructure. If an accurate representation is needed, asn1.Unmarshal the raw\nsubject or issuer as an [RDNSequence].",
         "properties": {
           "Country": {
             "items": {
@@ -6892,6 +7325,10 @@
           }
         },
         "title": "OAuth2 is the oauth2 client configuration.",
+        "type": "object"
+      },
+      "OID": {
+        "title": "An OID represents an ASN.1 OBJECT IDENTIFIER.",
         "type": "object"
       },
       "ObjectIdentifier": {
@@ -7145,7 +7582,6 @@
         "type": "object"
       },
       "PagerdutyImage": {
-        "description": "PagerdutyImage is an image",
         "properties": {
           "alt": {
             "type": "string"
@@ -7157,10 +7593,10 @@
             "type": "string"
           }
         },
+        "title": "PagerdutyImage is an image.",
         "type": "object"
       },
       "PagerdutyLink": {
-        "description": "PagerdutyLink is a link",
         "properties": {
           "href": {
             "type": "string"
@@ -7169,6 +7605,7 @@
             "type": "string"
           }
         },
+        "title": "PagerdutyLink is a link.",
         "type": "object"
       },
       "Password": {
@@ -7767,6 +8204,9 @@
           "notification_settings": {
             "$ref": "#/components/schemas/AlertRuleNotificationSettings"
           },
+          "record": {
+            "$ref": "#/components/schemas/Record"
+          },
           "title": {
             "type": "string"
           },
@@ -7816,6 +8256,9 @@
               "$ref": "#/components/schemas/TimeIntervalItem"
             },
             "type": "array"
+          },
+          "version": {
+            "type": "string"
           }
         },
         "type": "object"
@@ -7998,6 +8441,9 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/Provenance"
+          },
+          "record": {
+            "$ref": "#/components/schemas/Record"
           },
           "ruleGroup": {
             "example": "eval_group_1",
@@ -8182,7 +8628,7 @@
         "description": "PublicError is derived from Error and only contains information\navailable to the end user.",
         "properties": {
           "extra": {
-            "additionalProperties": false,
+            "additionalProperties": {},
             "type": "object"
           },
           "message": {
@@ -8363,12 +8809,12 @@
         "description": "The embedded FieldConfig's display name must be set.\nIt corresponds to the QueryResultMetaStat on the frontend (https://github.com/grafana/grafana/blob/master/packages/grafana-data/src/types/data.ts#L53).",
         "properties": {
           "color": {
-            "additionalProperties": false,
+            "additionalProperties": {},
             "description": "Map values to a display color\nNOTE: this interface is under development in the frontend... so simple map for now",
             "type": "object"
           },
           "custom": {
-            "additionalProperties": false,
+            "additionalProperties": {},
             "description": "Panel Specific Values",
             "type": "object"
           },
@@ -8576,6 +9022,25 @@
         "title": "ReceiverExport is the provisioned file export of alerting.ReceiverV1.",
         "type": "object"
       },
+      "Record": {
+        "properties": {
+          "from": {
+            "description": "Which expression node should be used as the input for the recorded metric.",
+            "example": "A",
+            "type": "string"
+          },
+          "metric": {
+            "description": "Name of the recorded metric.",
+            "example": "grafana_alerts_ratio",
+            "type": "string"
+          }
+        },
+        "required": [
+          "metric",
+          "from"
+        ],
+        "type": "object"
+      },
       "RecordingRuleJSON": {
         "description": "RecordingRuleJSON is the external representation of a recording rule",
         "properties": {
@@ -8606,7 +9071,7 @@
           },
           "queries": {
             "items": {
-              "additionalProperties": false,
+              "additionalProperties": {},
               "type": "object"
             },
             "type": "array"
@@ -8887,6 +9352,14 @@
         },
         "type": "object"
       },
+      "RestoreDeletedDashboardCommand": {
+        "properties": {
+          "folderUid": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "RevokeAuthTokenCmd": {
         "properties": {
           "authTokenId": {
@@ -9138,7 +9611,7 @@
             "type": "string"
           },
           "type": {
-            "$ref": "#/components/schemas/RuleType"
+            "type": "string"
           }
         },
         "required": [
@@ -9256,10 +9729,6 @@
         ],
         "type": "object"
       },
-      "RuleType": {
-        "title": "RuleType models the type of a rule.",
-        "type": "string"
-      },
       "SNSConfig": {
         "properties": {
           "api_url": {
@@ -9347,6 +9816,32 @@
           "userId": {
             "format": "int64",
             "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SearchDTO": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "basicRole": {
+            "type": "string"
+          },
+          "onlyRoles": {
+            "type": "boolean"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "teamId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
           }
         },
         "type": "object"
@@ -9689,6 +10184,23 @@
         },
         "type": "object"
       },
+      "SetTeamMembershipsCommand": {
+        "properties": {
+          "admins": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "members": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "SetUserRolesCommand": {
         "properties": {
           "global": {
@@ -9742,6 +10254,20 @@
       "SignatureAlgorithm": {
         "format": "int64",
         "type": "integer"
+      },
+      "SilenceMetadata": {
+        "properties": {
+          "folder_uid": {
+            "type": "string"
+          },
+          "rule_title": {
+            "type": "string"
+          },
+          "rule_uid": {
+            "type": "string"
+          }
+        },
+        "type": "object"
       },
       "SlackAction": {
         "description": "See https://api.slack.com/docs/message-attachments#action_fields and https://api.slack.com/docs/message-buttons\nfor more information.",
@@ -9893,6 +10419,51 @@
       "SmtpNotEnabled": {
         "$ref": "#/components/schemas/ResponseDetails"
       },
+      "SnapshotDTO": {
+        "description": "Base snapshot without results",
+        "properties": {
+          "created": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "finished": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sessionUid": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "INITIALIZING",
+              "CREATING",
+              "PENDING_UPLOAD",
+              "UPLOADING",
+              "PENDING_PROCESSING",
+              "PROCESSING",
+              "FINISHED",
+              "ERROR",
+              "UNKNOWN"
+            ],
+            "type": "string"
+          },
+          "uid": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SnapshotListResponseDTO": {
+        "properties": {
+          "snapshots": {
+            "items": {
+              "$ref": "#/components/schemas/SnapshotDTO"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "Span": {
         "properties": {
           "Length": {
@@ -9910,6 +10481,7 @@
         "type": "object"
       },
       "State": {
+        "description": "+enum",
         "type": "string"
       },
       "Status": {
@@ -10669,6 +11241,7 @@
         "type": "array"
       },
       "Type": {
+        "description": "+enum",
         "type": "string"
       },
       "TypeMeta": {
@@ -10687,7 +11260,7 @@
         "type": "object"
       },
       "URL": {
-        "description": "The general form represented is:\n\n[scheme:][//[userinfo@]host][/]path[?query][#fragment]\n\nURLs that do not start with a slash after the scheme are interpreted as:\n\nscheme:opaque[?query][#fragment]\n\nNote that the Path field is stored in decoded form: /%47%6f%2f becomes /Go/.\nA consequence is that it is impossible to tell which slashes in the Path were\nslashes in the raw URL and which were %2f. This distinction is rarely important,\nbut when it is, the code should use the EscapedPath method, which preserves\nthe original encoding of Path.\n\nThe RawPath field is an optional field which is only set when the default\nencoding of Path is different from the escaped path. See the EscapedPath method\nfor more details.\n\nURL's String method uses the EscapedPath method to obtain the path.",
+        "description": "The general form represented is:\n\n[scheme:][//[userinfo@]host][/]path[?query][#fragment]\n\nURLs that do not start with a slash after the scheme are interpreted as:\n\nscheme:opaque[?query][#fragment]\n\nThe Host field contains the host and port subcomponents of the URL.\nWhen the port is present, it is separated from the host with a colon.\nWhen the host is an IPv6 address, it must be enclosed in square brackets:\n\"[fe80::1]:80\". The [net.JoinHostPort] function combines a host and port\ninto a string suitable for the Host field, adding square brackets to\nthe host when necessary.\n\nNote that the Path field is stored in decoded form: /%47%6f%2f becomes /Go/.\nA consequence is that it is impossible to tell which slashes in the Path were\nslashes in the raw URL and which were %2f. This distinction is rarely important,\nbut when it is, the code should use the [URL.EscapedPath] method, which preserves\nthe original encoding of Path.\n\nThe RawPath field is an optional field which is only set when the default\nencoding of Path is different from the escaped path. See the EscapedPath method\nfor more details.\n\nURL's String method uses the EscapedPath method to obtain the path.",
         "properties": {
           "ForceQuery": {
             "type": "boolean"
@@ -10730,7 +11303,7 @@
         "description": "Unstructured allows objects that do not have Golang structs registered to be manipulated\ngenerically.",
         "properties": {
           "Object": {
-            "additionalProperties": false,
+            "additionalProperties": {},
             "description": "Object is a JSON compatible map with string, float, int, bool, []interface{},\nor map[string]interface{} children.",
             "type": "object"
           }
@@ -11325,7 +11898,7 @@
         "type": "object"
       },
       "Userinfo": {
-        "description": "The Userinfo type is an immutable encapsulation of username and\npassword details for a URL. An existing Userinfo value is guaranteed\nto have a username set (potentially empty, as allowed by RFC 2396),\nand optionally a password.",
+        "description": "The Userinfo type is an immutable encapsulation of username and\npassword details for a [URL]. An existing Userinfo value is guaranteed\nto have a username set (potentially empty, as allowed by RFC 2396),\nand optionally a password.",
         "type": "object"
       },
       "ValidationError": {
@@ -11718,7 +12291,33 @@
         },
         "type": "array"
       },
+      "gettableGrafanaSilence": {
+        "properties": {
+          "accessControl": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "example": {
+              "create": false,
+              "read": true,
+              "write": false
+            },
+            "type": "object"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/SilenceMetadata"
+          }
+        },
+        "type": "object"
+      },
+      "gettableGrafanaSilences": {
+        "items": {
+          "$ref": "#/components/schemas/gettableGrafanaSilence"
+        },
+        "type": "array"
+      },
       "gettableSilence": {
+        "description": "GettableSilence gettable silence",
         "properties": {
           "comment": {
             "description": "comment",
@@ -11767,7 +12366,6 @@
         "type": "object"
       },
       "gettableSilences": {
-        "description": "GettableSilences gettable silences",
         "items": {
           "$ref": "#/components/schemas/gettableSilence"
         },
@@ -11918,6 +12516,7 @@
         "type": "array"
       },
       "postableSilence": {
+        "description": "PostableSilence postable silence",
         "properties": {
           "comment": {
             "description": "comment",
@@ -11958,7 +12557,7 @@
         "description": "PublicError is derived from Error and only contains information\navailable to the end user.",
         "properties": {
           "extra": {
-            "additionalProperties": false,
+            "additionalProperties": {},
             "description": "Extra Additional information about the error",
             "type": "object"
           },
@@ -12219,12 +12818,19 @@
     },
     "/access-control/roles": {
       "get": {
-        "description": "Gets all existing roles. The response contains all global and organization local roles, for the organization which user is signed in.\n\nYou need to have a permission with action `roles:read` and scope `roles:*`.",
+        "description": "Gets all existing roles. The response contains all global and organization local roles, for the organization which user is signed in.\n\nYou need to have a permission with action `roles:read` and scope `roles:*`.\n\nThe `delegatable` flag reduces the set of roles to only those for which the signed-in user has permissions to assign.",
         "operationId": "listRoles",
         "parameters": [
           {
             "in": "query",
             "name": "delegatable",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeHidden",
             "schema": {
               "type": "boolean"
             }
@@ -14642,6 +15248,561 @@
         ]
       }
     },
+    "/cloudmigration/migration": {
+      "get": {
+        "operationId": "getSessionList",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/cloudMigrationSessionListResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Get a list of all cloud migration sessions that have been created.",
+        "tags": [
+          "migrations"
+        ]
+      },
+      "post": {
+        "operationId": "createSession",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloudMigrationSessionRequestDTO"
+              }
+            }
+          },
+          "required": true,
+          "x-originalParamName": "Body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/cloudMigrationSessionResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Create a migration session.",
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
+    "/cloudmigration/migration/run/{runUID}": {
+      "get": {
+        "operationId": "getCloudMigrationRun",
+        "parameters": [
+          {
+            "description": "RunUID of a migration run",
+            "in": "path",
+            "name": "runUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/cloudMigrationRunResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Get the result of a single migration run.",
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
+    "/cloudmigration/migration/{uid}": {
+      "delete": {
+        "operationId": "deleteSession",
+        "parameters": [
+          {
+            "description": "UID of a migration session",
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Delete a migration session by its uid.",
+        "tags": [
+          "migrations"
+        ]
+      },
+      "get": {
+        "operationId": "getSession",
+        "parameters": [
+          {
+            "description": "UID of a migration session",
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/cloudMigrationSessionResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Get a cloud migration session by its uid.",
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
+    "/cloudmigration/migration/{uid}/run": {
+      "get": {
+        "operationId": "getCloudMigrationRunList",
+        "parameters": [
+          {
+            "description": "UID of a migration",
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/cloudMigrationRunListResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Get a list of migration runs for a migration.",
+        "tags": [
+          "migrations"
+        ]
+      },
+      "post": {
+        "description": "It returns migrations that has been created.",
+        "operationId": "runCloudMigration",
+        "parameters": [
+          {
+            "description": "UID of a migration",
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/cloudMigrationRunResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Trigger the run of a migration to the Grafana Cloud.",
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
+    "/cloudmigration/migration/{uid}/snapshot": {
+      "post": {
+        "description": "If the snapshot initialization is successful, the snapshot uid is returned.",
+        "operationId": "createSnapshot",
+        "parameters": [
+          {
+            "description": "UID of a session",
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/createSnapshotResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Trigger the creation of an instance snapshot associated with the provided session.",
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
+    "/cloudmigration/migration/{uid}/snapshot/{snapshotUid}": {
+      "get": {
+        "operationId": "getSnapshot",
+        "parameters": [
+          {
+            "description": "Session UID of a session",
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "UID of a snapshot",
+            "in": "path",
+            "name": "snapshotUid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/getSnapshotResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Get metadata about a snapshot, including where it is in its processing and final results.",
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
+    "/cloudmigration/migration/{uid}/snapshot/{snapshotUid}/cancel": {
+      "post": {
+        "description": "TODO: Implement",
+        "operationId": "cancelSnapshot",
+        "parameters": [
+          {
+            "description": "Session UID of a session",
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "UID of a snapshot",
+            "in": "path",
+            "name": "snapshotUid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "(empty)"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Cancel a snapshot, wherever it is in its processing chain.",
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
+    "/cloudmigration/migration/{uid}/snapshot/{snapshotUid}/upload": {
+      "post": {
+        "operationId": "uploadSnapshot",
+        "parameters": [
+          {
+            "description": "Session UID of a session",
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "UID of a snapshot",
+            "in": "path",
+            "name": "snapshotUid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "(empty)"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Upload a snapshot to the Grafana Migration Service for processing.",
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
+    "/cloudmigration/migration/{uid}/snapshots": {
+      "get": {
+        "operationId": "getShapshotList",
+        "parameters": [
+          {
+            "description": "Offset is used for pagination with limit",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Max limit for results returned.",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 100,
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Session UID of a session",
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/snapshotListResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Get a list of snapshots for a session.",
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
+    "/cloudmigration/token": {
+      "get": {
+        "operationId": "getCloudMigrationToken",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/cloudMigrationGetTokenResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Fetch the cloud migration token if it exists.",
+        "tags": [
+          "migrations"
+        ]
+      },
+      "post": {
+        "operationId": "createCloudMigrationToken",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/cloudMigrationCreateTokenResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Create gcom access token.",
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
+    "/cloudmigration/token/{uid}": {
+      "delete": {
+        "operationId": "deleteCloudMigrationToken",
+        "parameters": [
+          {
+            "description": "UID of a cloud migration token",
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/cloudMigrationDeleteTokenResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Deletes a cloud migration token.",
+        "tags": [
+          "migrations"
+        ]
+      }
+    },
     "/dashboard/snapshots": {
       "get": {
         "operationId": "searchDashboardSnapshots",
@@ -15488,6 +16649,91 @@
         "summary": "Restore a dashboard to a given dashboard version using UID.",
         "tags": [
           "dashboard_versions"
+        ]
+      }
+    },
+    "/dashboards/uid/{uid}/trash": {
+      "delete": {
+        "description": "Will delete the dashboard given the specified unique identifier (uid).",
+        "operationId": "hardDeleteDashboardByUID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/deleteDashboardResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Hard delete dashboard by uid.",
+        "tags": [
+          "dashboards"
+        ]
+      },
+      "patch": {
+        "operationId": "restoreDeletedDashboardByUID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreDeletedDashboardCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-originalParamName": "Body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/postDashboardResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Restore a dashboard to a given dashboard version using UID.",
+        "tags": [
+          "dashboards"
         ]
       }
     },
@@ -16497,6 +17743,82 @@
         ]
       }
     },
+    "/datasources/uid/{uid}/lbac/teams": {
+      "get": {
+        "operationId": "getTeamLBACRulesApi",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/okResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Retrieves LBAC rules for a team.",
+        "tags": [
+          "enterprise"
+        ]
+      },
+      "put": {
+        "operationId": "updateTeamLBACRulesApi",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/okResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Updates LBAC rules for a team.",
+        "tags": [
+          "enterprise"
+        ]
+      }
+    },
     "/datasources/uid/{uid}/resources/{datasource_proxy_route}": {
       "get": {
         "operationId": "callDatasourceResourceWithUID",
@@ -16541,6 +17863,188 @@
         "summary": "Fetch data source resources.",
         "tags": [
           "datasources"
+        ]
+      }
+    },
+    "/datasources/{dataSourceUID}/cache": {
+      "get": {
+        "description": "get cache config for a single data source",
+        "operationId": "getDataSourceCacheConfig",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dataSourceUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CacheConfigResponse"
+                }
+              }
+            },
+            "description": "CacheConfigResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "tags": [
+          "enterprise"
+        ]
+      },
+      "post": {
+        "description": "set cache config for a single data source",
+        "operationId": "setDataSourceCacheConfig",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dataSourceUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CacheConfigSetter"
+              }
+            }
+          },
+          "required": true,
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CacheConfigResponse"
+                }
+              }
+            },
+            "description": "CacheConfigResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "tags": [
+          "enterprise"
+        ]
+      }
+    },
+    "/datasources/{dataSourceUID}/cache/clean": {
+      "post": {
+        "description": "clean cache for a single data source",
+        "operationId": "cleanDataSourceCache",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dataSourceUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CacheConfigResponse"
+                }
+              }
+            },
+            "description": "CacheConfigResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "tags": [
+          "enterprise"
+        ]
+      }
+    },
+    "/datasources/{dataSourceUID}/cache/disable": {
+      "post": {
+        "description": "disable cache for a single data source",
+        "operationId": "disableDataSourceCache",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dataSourceUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CacheConfigResponse"
+                }
+              }
+            },
+            "description": "CacheConfigResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "tags": [
+          "enterprise"
+        ]
+      }
+    },
+    "/datasources/{dataSourceUID}/cache/enable": {
+      "post": {
+        "description": "enable cache for a single data source",
+        "operationId": "enableDataSourceCache",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dataSourceUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CacheConfigResponse"
+                }
+              }
+            },
+            "description": "CacheConfigResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "tags": [
+          "enterprise"
         ]
       }
     },
@@ -19914,6 +21418,50 @@
         ]
       }
     },
+    "/reports/render/csvs": {
+      "get": {
+        "description": "Available to all users and with a valid license.",
+        "operationId": "renderReportCSVs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "dashboards",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "title",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/contentResponse"
+          },
+          "204": {
+            "$ref": "#/components/responses/noContentResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/badRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Download a CSV report.",
+        "tags": [
+          "reports",
+          "enterprise"
+        ]
+      }
+    },
     "/reports/render/pdfs": {
       "get": {
         "description": "Available to all users and with a valid license.",
@@ -19921,7 +21469,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "dashboardID",
+            "name": "dashboards",
             "schema": {
               "type": "string"
             }
@@ -20460,6 +22008,14 @@
                 "alpha-desc"
               ],
               "type": "string"
+            }
+          },
+          {
+            "description": "Flag indicating if only soft deleted Dashboards should be returned",
+            "in": "query",
+            "name": "deleted",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
@@ -21516,6 +23072,52 @@
           }
         },
         "summary": "Add Team Member.",
+        "tags": [
+          "teams"
+        ]
+      },
+      "put": {
+        "description": "Takes user emails, and updates team members and admins to the provided lists of users.\nAny current team members and admins not in the provided lists will be removed.",
+        "operationId": "setTeamMemberships",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTeamMembershipsCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/okResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorisedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/internalServerError"
+          }
+        },
+        "summary": "Set team memberships.",
         "tags": [
           "teams"
         ]
@@ -22635,11 +24237,16 @@
             }
           },
           {
-            "description": "Format of the downloaded file, either yaml or json. Accept header can also be used, but the query parameter will take precedence.",
+            "description": "Format of the downloaded file. Supported yaml, json or hcl. Accept header can also be used, but the query parameter will take precedence.",
             "in": "query",
             "name": "format",
             "schema": {
               "default": "yaml",
+              "enum": [
+                "yaml",
+                "json",
+                "hcl"
+              ],
               "type": "string"
             }
           },
@@ -22675,6 +24282,26 @@
           "200": {
             "content": {
               "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "application/terraform+hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "application/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "text/hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "text/yaml": {
                 "schema": {
                   "$ref": "#/components/schemas/AlertingFileExport"
                 }
@@ -22828,11 +24455,16 @@
             }
           },
           {
-            "description": "Format of the downloaded file, either yaml or json. Accept header can also be used, but the query parameter will take precedence.",
+            "description": "Format of the downloaded file. Supported yaml, json or hcl. Accept header can also be used, but the query parameter will take precedence.",
             "in": "query",
             "name": "format",
             "schema": {
               "default": "yaml",
+              "enum": [
+                "yaml",
+                "json",
+                "hcl"
+              ],
               "type": "string"
             }
           },
@@ -22854,7 +24486,17 @@
                   "$ref": "#/components/schemas/AlertingFileExport"
                 }
               },
+              "application/terraform+hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
               "application/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "text/hcl": {
                 "schema": {
                   "$ref": "#/components/schemas/AlertingFileExport"
                 }
@@ -22970,11 +24612,16 @@
             }
           },
           {
-            "description": "Format of the downloaded file, either yaml or json. Accept header can also be used, but the query parameter will take precedence.",
+            "description": "Format of the downloaded file. Supported yaml, json or hcl. Accept header can also be used, but the query parameter will take precedence.",
             "in": "query",
             "name": "format",
             "schema": {
               "default": "yaml",
+              "enum": [
+                "yaml",
+                "json",
+                "hcl"
+              ],
               "type": "string"
             }
           },
@@ -23003,6 +24650,26 @@
                 "schema": {
                   "$ref": "#/components/schemas/AlertingFileExport"
                 }
+              },
+              "application/terraform+hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "application/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "text/hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "text/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
               }
             },
             "description": "AlertingFileExport"
@@ -23010,6 +24677,26 @@
           "403": {
             "content": {
               "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDenied"
+                }
+              },
+              "application/terraform+hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDenied"
+                }
+              },
+              "application/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDenied"
+                }
+              },
+              "text/hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDenied"
+                }
+              },
+              "text/yaml": {
                 "schema": {
                   "$ref": "#/components/schemas/PermissionDenied"
                 }
@@ -23256,7 +24943,7 @@
             "description": "ValidationError"
           }
         },
-        "summary": "Update the interval of a rule group.",
+        "summary": "Create or update alert rule group.",
         "tags": [
           "provisioning"
         ]
@@ -23276,11 +24963,16 @@
             }
           },
           {
-            "description": "Format of the downloaded file, either yaml or json. Accept header can also be used, but the query parameter will take precedence.",
+            "description": "Format of the downloaded file. Supported yaml, json or hcl. Accept header can also be used, but the query parameter will take precedence.",
             "in": "query",
             "name": "format",
             "schema": {
               "default": "yaml",
+              "enum": [
+                "yaml",
+                "json",
+                "hcl"
+              ],
               "type": "string"
             }
           },
@@ -23309,7 +25001,17 @@
                   "$ref": "#/components/schemas/AlertingFileExport"
                 }
               },
+              "application/terraform+hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
               "application/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "text/hcl": {
                 "schema": {
                   "$ref": "#/components/schemas/AlertingFileExport"
                 }
@@ -23415,11 +25117,16 @@
             }
           },
           {
-            "description": "Format of the downloaded file, either yaml or json. Accept header can also be used, but the query parameter will take precedence.",
+            "description": "Format of the downloaded file. Supported yaml, json or hcl. Accept header can also be used, but the query parameter will take precedence.",
             "in": "query",
             "name": "format",
             "schema": {
               "default": "yaml",
+              "enum": [
+                "yaml",
+                "json",
+                "hcl"
+              ],
               "type": "string"
             }
           }
@@ -23431,6 +25138,26 @@
                 "schema": {
                   "$ref": "#/components/schemas/AlertingFileExport"
                 }
+              },
+              "application/terraform+hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "application/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "text/hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "text/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
               }
             },
             "description": "AlertingFileExport"
@@ -23438,6 +25165,26 @@
           "403": {
             "content": {
               "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDenied"
+                }
+              },
+              "application/terraform+hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDenied"
+                }
+              },
+              "application/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDenied"
+                }
+              },
+              "text/hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDenied"
+                }
+              },
+              "text/yaml": {
                 "schema": {
                   "$ref": "#/components/schemas/PermissionDenied"
                 }
@@ -23461,6 +25208,21 @@
             "in": "path",
             "name": "name",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Version of mute timing to use for optimistic concurrency. Leave empty to disable validation",
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Disable-Provenance",
             "schema": {
               "type": "string"
             }
@@ -23569,6 +25331,16 @@
               }
             },
             "description": "ValidationError"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericPublicError"
+                }
+              }
+            },
+            "description": "GenericPublicError"
           }
         },
         "summary": "Replace an existing mute timing.",
@@ -23591,11 +25363,16 @@
             }
           },
           {
-            "description": "Format of the downloaded file, either yaml or json. Accept header can also be used, but the query parameter will take precedence.",
+            "description": "Format of the downloaded file. Supported yaml, json or hcl. Accept header can also be used, but the query parameter will take precedence.",
             "in": "query",
             "name": "format",
             "schema": {
               "default": "yaml",
+              "enum": [
+                "yaml",
+                "json",
+                "hcl"
+              ],
               "type": "string"
             }
           },
@@ -23616,6 +25393,26 @@
                 "schema": {
                   "$ref": "#/components/schemas/AlertingFileExport"
                 }
+              },
+              "application/terraform+hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "application/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "text/hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "text/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
               }
             },
             "description": "AlertingFileExport"
@@ -23623,6 +25420,26 @@
           "403": {
             "content": {
               "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDenied"
+                }
+              },
+              "application/terraform+hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDenied"
+                }
+              },
+              "application/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDenied"
+                }
+              },
+              "text/hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDenied"
+                }
+              },
+              "text/yaml": {
                 "schema": {
                   "$ref": "#/components/schemas/PermissionDenied"
                 }
@@ -23736,6 +25553,26 @@
                 "schema": {
                   "$ref": "#/components/schemas/AlertingFileExport"
                 }
+              },
+              "application/terraform+hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "application/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "text/hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
+              },
+              "text/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertingFileExport"
+                }
               }
             },
             "description": "AlertingFileExport"
@@ -23743,6 +25580,26 @@
           "404": {
             "content": {
               "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              },
+              "application/terraform+hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              },
+              "application/yaml": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              },
+              "text/hcl": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              },
+              "text/yaml": {
                 "schema": {
                   "$ref": "#/components/schemas/NotFound"
                 }
@@ -24019,7 +25876,7 @@
                     "type": "string"
                   },
                   "settings": {
-                    "additionalProperties": false,
+                    "additionalProperties": {},
                     "type": "object"
                   }
                 },

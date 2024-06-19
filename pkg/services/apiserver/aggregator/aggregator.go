@@ -24,12 +24,14 @@ import (
 
 	servicev0alpha1 "github.com/grafana/grafana/pkg/apis/service/v0alpha1"
 	"github.com/grafana/grafana/pkg/registry/apis/service"
+	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/apiserver/pkg/server/dynamiccertificates"
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
@@ -42,9 +44,11 @@ import (
 	apiregistrationclientset "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
 	apiregistrationInformers "k8s.io/kube-aggregator/pkg/client/informers/externalversions/apiregistration/v1"
+	"k8s.io/kube-aggregator/pkg/controllers"
 	"k8s.io/kube-aggregator/pkg/controllers/autoregister"
 
 	"github.com/grafana/grafana/pkg/apiserver/builder"
+	grafanarest "github.com/grafana/grafana/pkg/apiserver/rest"
 	servicev0alpha1applyconfiguration "github.com/grafana/grafana/pkg/generated/applyconfiguration/service/v0alpha1"
 	serviceclientset "github.com/grafana/grafana/pkg/generated/clientset/versioned"
 	informersv0alpha1 "github.com/grafana/grafana/pkg/generated/informers/externalversions"
@@ -169,11 +173,11 @@ func CreateAggregatorConfig(commandOptions *options.Options, sharedConfig generi
 	return NewConfig(aggregatorConfig, sharedInformerFactory, []builder.APIGroupBuilder{serviceAPIBuilder}, remoteServicesConfig), nil
 }
 
-func CreateAggregatorServer(config *Config, delegateAPIServer genericapiserver.DelegationTarget) (*aggregatorapiserver.APIAggregator, error) {
+func CreateAggregatorServer(config *Config, delegateAPIServer genericapiserver.DelegationTarget, reg prometheus.Registerer) (*aggregatorapiserver.APIAggregator, error) {
 	aggregatorConfig := config.KubeAggregatorConfig
 	sharedInformerFactory := config.Informers
 	remoteServicesConfig := config.RemoteServicesConfig
-
+	externalNamesInformer := sharedInformerFactory.Service().V0alpha1().ExternalNames()
 	completedConfig := aggregatorConfig.Complete()
 
 	aggregatorServer, err := completedConfig.NewWithDelegate(delegateAPIServer)
@@ -209,7 +213,8 @@ func CreateAggregatorServer(config *Config, delegateAPIServer genericapiserver.D
 	if remoteServicesConfig != nil {
 		addRemoteAPIServicesToRegister(remoteServicesConfig, autoRegistrationController)
 		externalNames := getRemoteExternalNamesToRegister(remoteServicesConfig)
-		err = aggregatorServer.GenericAPIServer.AddPostStartHook("grafana-apiserver-remote-autoregistration", func(_ genericapiserver.PostStartHookContext) error {
+		err = aggregatorServer.GenericAPIServer.AddPostStartHook("grafana-apiserver-remote-autoregistration", func(ctx genericapiserver.PostStartHookContext) error {
+			controllers.WaitForCacheSync("grafana-apiserver-remote-autoregistration", ctx.StopCh, externalNamesInformer.Informer().HasSynced)
 			namespacedClient := remoteServicesConfig.serviceClientSet.ServiceV0alpha1().ExternalNames(remoteServicesConfig.ExternalNamesNamespace)
 			for _, externalName := range externalNames {
 				_, err := namespacedClient.Apply(context.Background(), externalName, metav1.ApplyOptions{
@@ -243,12 +248,25 @@ func CreateAggregatorServer(config *Config, delegateAPIServer genericapiserver.D
 		return nil, err
 	}
 
+	proxyCurrentCertKeyContentFunc := func() ([]byte, []byte) {
+		return nil, nil
+	}
+	if len(config.KubeAggregatorConfig.ExtraConfig.ProxyClientCertFile) > 0 && len(config.KubeAggregatorConfig.ExtraConfig.ProxyClientKeyFile) > 0 {
+		aggregatorProxyCerts, err := dynamiccertificates.NewDynamicServingContentFromFiles("aggregator-proxy-cert", config.KubeAggregatorConfig.ExtraConfig.ProxyClientCertFile, config.KubeAggregatorConfig.ExtraConfig.ProxyClientKeyFile)
+		if err != nil {
+			return nil, err
+		}
+		proxyCurrentCertKeyContentFunc = func() ([]byte, []byte) {
+			return aggregatorProxyCerts.CurrentCertKeyContent()
+		}
+	}
+
 	availableController, err := NewAvailableConditionController(
 		aggregatorServer.APIRegistrationInformers.Apiregistration().V1().APIServices(),
-		sharedInformerFactory.Service().V0alpha1().ExternalNames(),
+		externalNamesInformer,
 		apiregistrationClient.ApiregistrationV1(),
 		nil,
-		(func() ([]byte, []byte))(nil),
+		proxyCurrentCertKeyContentFunc,
 		completedConfig.ExtraConfig.ServiceResolver,
 	)
 	if err != nil {
@@ -268,7 +286,13 @@ func CreateAggregatorServer(config *Config, delegateAPIServer genericapiserver.D
 	})
 
 	for _, b := range config.Builders {
-		serviceAPIGroupInfo, err := b.GetAPIGroupInfo(aggregatorscheme.Scheme, aggregatorscheme.Codecs, aggregatorConfig.GenericConfig.RESTOptionsGetter, false)
+		serviceAPIGroupInfo, err := b.GetAPIGroupInfo(
+			aggregatorscheme.Scheme,
+			aggregatorscheme.Codecs,
+			aggregatorConfig.GenericConfig.RESTOptionsGetter,
+			grafanarest.Mode0,
+			reg,
+		)
 		if err != nil {
 			return nil, err
 		}

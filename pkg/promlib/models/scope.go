@@ -3,18 +3,17 @@ package models
 import (
 	"fmt"
 
-	"github.com/grafana/grafana/pkg/apis/scope/v0alpha1"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
-func ApplyQueryScope(rawExpr string, scope v0alpha1.ScopeSpec) (string, error) {
+func ApplyFiltersAndGroupBy(rawExpr string, scopeFilters, adHocFilters []ScopeFilter, groupBy []string) (string, error) {
 	expr, err := parser.ParseExpr(rawExpr)
 	if err != nil {
 		return "", err
 	}
 
-	matchers, err := scopeFiltersToMatchers(scope.Filters)
+	matchers, err := filtersToMatchers(scopeFilters, adHocFilters)
 	if err != nil {
 		return "", err
 	}
@@ -51,7 +50,17 @@ func ApplyQueryScope(rawExpr string, scope v0alpha1.ScopeSpec) (string, error) {
 			}
 
 			return nil
-
+		case *parser.AggregateExpr:
+			found := make(map[string]bool)
+			for _, lName := range v.Grouping {
+				found[lName] = true
+			}
+			for _, k := range groupBy {
+				if !found[k] {
+					v.Grouping = append(v.Grouping, k)
+				}
+			}
+			return nil
 		default:
 			return nil
 		}
@@ -59,27 +68,38 @@ func ApplyQueryScope(rawExpr string, scope v0alpha1.ScopeSpec) (string, error) {
 	return expr.String(), nil
 }
 
-func scopeFiltersToMatchers(filters []v0alpha1.ScopeFilter) ([]*labels.Matcher, error) {
-	matchers := make([]*labels.Matcher, 0, len(filters))
-	for _, f := range filters {
-		var mt labels.MatchType
-		switch f.Operator {
-		case "=":
-			mt = labels.MatchEqual
-		case "!=":
-			mt = labels.MatchNotEqual
-		case "=~":
-			mt = labels.MatchRegexp
-		case "!~":
-			mt = labels.MatchNotRegexp
-		default:
-			return nil, fmt.Errorf("unknown operator %q", f.Operator)
-		}
-		m, err := labels.NewMatcher(mt, f.Key, f.Value)
+func filtersToMatchers(scopeFilters, adhocFilters []ScopeFilter) ([]*labels.Matcher, error) {
+	filterMap := make(map[string]*labels.Matcher)
+
+	for _, filter := range append(scopeFilters, adhocFilters...) {
+		matcher, err := filterToMatcher(filter)
 		if err != nil {
 			return nil, err
 		}
-		matchers = append(matchers, m)
+		filterMap[filter.Key] = matcher
 	}
+
+	matchers := make([]*labels.Matcher, 0, len(filterMap))
+	for _, matcher := range filterMap {
+		matchers = append(matchers, matcher)
+	}
+
 	return matchers, nil
+}
+
+func filterToMatcher(f ScopeFilter) (*labels.Matcher, error) {
+	var mt labels.MatchType
+	switch f.Operator {
+	case FilterOperatorEquals:
+		mt = labels.MatchEqual
+	case FilterOperatorNotEquals:
+		mt = labels.MatchNotEqual
+	case FilterOperatorRegexMatch:
+		mt = labels.MatchRegexp
+	case FilterOperatorRegexNotMatch:
+		mt = labels.MatchNotRegexp
+	default:
+		return nil, fmt.Errorf("unknown operator %q", f.Operator)
+	}
+	return labels.NewMatcher(mt, f.Key, f.Value)
 }
